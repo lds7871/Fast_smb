@@ -16,7 +16,7 @@
             <Setter Property="FontSize" Value="16" />
         </Style>
         <Style TargetType="Button">
-            <Setter Property="BackgroundColor" Value="#238636" />
+            <Setter Property="BackgroundColor" Value="#A371F7" />
             <Setter Property="TextColor" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="HeightRequest" Value="52" />

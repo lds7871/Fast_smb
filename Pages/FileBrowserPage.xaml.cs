@@ -29,6 +29,7 @@ public partial class FileBrowserPage : ContentPage
     private CancellationTokenSource? _cts;
     private bool _isBatchMode;
     private List<SmbEntry> _currentEntries = new();
+    private List<SmbEntry> _displayedEntries = new();
     private bool _batchAbort;
 
     public FileBrowserPage()
@@ -73,6 +74,7 @@ public partial class FileBrowserPage : ContentPage
             _currentPath = _pathStack[^1];
             _pathStack.RemoveAt(_pathStack.Count - 1);
             UpdateTitle();
+            ClearSearch();
             _ = LoadDirectoryAsync();
             return true;
         }
@@ -97,9 +99,7 @@ public partial class FileBrowserPage : ContentPage
             {
                 _currentEntries = result.entries;
                 ApplyBatchModeToEntries();
-                FileList.ItemsSource = result.entries;
-                EmptyLabel.IsVisible = result.entries.Count == 0;
-                UpdateBatchCount();
+                ApplySearch();
             }
             else
             {
@@ -110,6 +110,60 @@ public partial class FileBrowserPage : ContentPage
         {
             await Banner.ShowAsync("无法读取目录：" + ex.Message, error: true, durationMs: 2500);
         }
+    }
+
+    // ---------- 搜索 ----------
+
+    private void OnSearchClicked(object? sender, EventArgs e)
+    {
+        SearchBar.IsVisible = !SearchBar.IsVisible;
+        if (SearchBar.IsVisible)
+        {
+            SearchEntry.Focus();
+        }
+        else
+        {
+            ClearSearch();
+        }
+    }
+
+    private void OnSearchTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        ApplySearch();
+    }
+
+    private void OnSearchCancelClicked(object? sender, EventArgs e)
+    {
+        SearchBar.IsVisible = false;
+        ClearSearch();
+        SearchEntry.Unfocus();
+    }
+
+    private void ClearSearch()
+    {
+        SearchEntry.Text = "";
+        ApplySearch();
+    }
+
+    /// <summary>按搜索词过滤当前目录条目并刷新列表（空词显示全部）。</summary>
+    private void ApplySearch()
+    {
+        var keyword = SearchEntry?.Text?.Trim() ?? "";
+        if (keyword.Length == 0)
+        {
+            _displayedEntries = _currentEntries;
+            EmptyLabel.Text = "此目录为空";
+        }
+        else
+        {
+            _displayedEntries = _currentEntries
+                .Where(e => e.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            EmptyLabel.Text = "没有匹配的文件";
+        }
+        FileList.ItemsSource = _displayedEntries;
+        EmptyLabel.IsVisible = _displayedEntries.Count == 0;
+        UpdateBatchCount();
     }
 
     // ---------- 批量模式 ----------
@@ -137,7 +191,7 @@ public partial class FileBrowserPage : ContentPage
     private void UpdateBatchCount()
     {
         if (BatchDownloadBtn == null) return;
-        int n = _currentEntries.Count(e => e.IsSelected);
+        int n = _displayedEntries.Count(e => e.IsSelected);
         BatchDownloadBtn.Text = n > 0 ? $"下载所选 ({n})" : "下载所选 (0)";
         BatchDownloadBtn.IsEnabled = n > 0;
     }
@@ -146,7 +200,7 @@ public partial class FileBrowserPage : ContentPage
 
     private void OnSelectAll(object? sender, EventArgs e)
     {
-        foreach (var entry in _currentEntries)
+        foreach (var entry in _displayedEntries)
             if (!entry.IsDirectory)
                 entry.IsSelected = true;
         UpdateBatchCount();
@@ -154,7 +208,7 @@ public partial class FileBrowserPage : ContentPage
 
     private void OnInvertSelection(object? sender, EventArgs e)
     {
-        foreach (var entry in _currentEntries)
+        foreach (var entry in _displayedEntries)
             if (!entry.IsDirectory)
                 entry.IsSelected = !entry.IsSelected;
         UpdateBatchCount();
@@ -162,7 +216,7 @@ public partial class FileBrowserPage : ContentPage
 
     private void OnSelectNone(object? sender, EventArgs e)
     {
-        foreach (var entry in _currentEntries)
+        foreach (var entry in _displayedEntries)
             entry.IsSelected = false;
         UpdateBatchCount();
     }
@@ -173,7 +227,7 @@ public partial class FileBrowserPage : ContentPage
     {
         if (_busy)
             return;
-        var targets = _currentEntries.Where(x => x.IsSelected && !x.IsDirectory).ToList();
+        var targets = _displayedEntries.Where(x => x.IsSelected && !x.IsDirectory).ToList();
         if (targets.Count == 0)
         {
             await Banner.ShowAsync("请先选择要下载的文件", durationMs: 1500);
@@ -214,6 +268,7 @@ public partial class FileBrowserPage : ContentPage
             _pathStack.Add(_currentPath);
             _currentPath = CombinePath(_currentPath, entry.Name);
             UpdateTitle();
+            ClearSearch();
             await LoadDirectoryAsync();
         }
         else if (_isBatchMode)
@@ -420,6 +475,7 @@ public partial class FileBrowserPage : ContentPage
             _currentPath = _pathStack[^1];
             _pathStack.RemoveAt(_pathStack.Count - 1);
             UpdateTitle();
+            ClearSearch();
             _ = LoadDirectoryAsync();
         }
         else

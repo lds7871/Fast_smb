@@ -10,13 +10,39 @@
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="上级" Clicked="OnUpClicked" />
         <ToolbarItem Text="刷新" Clicked="OnRefreshClicked" />
+        <ToolbarItem Text="搜索" Clicked="OnSearchClicked" />
         <ToolbarItem x:Name="BatchItem" Text="批量" Clicked="OnBatchToggleClicked" />
     </ContentPage.ToolbarItems>
 
-    <Grid BackgroundColor="#0D1117">
+    <Grid RowDefinitions="Auto,*" BackgroundColor="#0D1117">
 
-        <!-- 文件列表 -->
-        <Grid>
+        <!-- 搜索栏（点击顶栏「搜索」弹出） -->
+        <Grid x:Name="SearchBar"
+              Grid.Row="0"
+              IsVisible="False"
+              Padding="14,8"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="10"
+              BackgroundColor="#161B22">
+            <Entry x:Name="SearchEntry"
+                   Placeholder="搜索当前目录文件名…"
+                   TextChanged="OnSearchTextChanged"
+                   ClearButtonVisibility="WhileEditing"
+                   ReturnType="Search"
+                   TextColor="#E6EDF3"
+                   PlaceholderColor="#8B949E"
+                   HeightRequest="44"
+                   FontSize="15" />
+            <Button Grid.Column="1"
+                    Text="取消"
+                    Clicked="OnSearchCancelClicked"
+                    BackgroundColor="#21262D" TextColor="#8B949E"
+                    HeightRequest="44" CornerRadius="9" FontSize="14"
+                    Padding="18,0" />
+        </Grid>
+
+        <!-- 内容区（文件列表 + 空提示） -->
+        <Grid Grid.Row="1">
             <CollectionView x:Name="FileList" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:SmbEntry">
@@ -70,6 +96,7 @@
 
         <!-- 下载进度面板（悬浮顶部） -->
         <Grid x:Name="ProgressPanel"
+              Grid.Row="0" Grid.RowSpan="2"
               IsVisible="False"
               Padding="14,10"
               RowDefinitions="Auto,Auto"
@@ -96,6 +123,7 @@
 
         <!-- 底部批量操作面板 -->
         <Border x:Name="BatchPanel"
+                Grid.Row="0" Grid.RowSpan="2"
                 IsVisible="False"
                 BackgroundColor="#161B22"
                 Stroke="#A371F7"
@@ -130,6 +158,7 @@
 
         <!-- 顶部下滑横幅 -->
         <controls:TopBannerView x:Name="Banner"
+                                Grid.Row="0" Grid.RowSpan="2"
                                 VerticalOptions="Start"
                                 HorizontalOptions="Fill" />
     </Grid>
