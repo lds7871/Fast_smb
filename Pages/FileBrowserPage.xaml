@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:Fast_smb.Models"
+             xmlns:controls="clr-namespace:Fast_smb.Controls"
+             x:Class="Fast_smb.Pages.FileBrowserPage"
+             Title="文件"
+             BackgroundColor="#0D1117">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="上级" Clicked="OnUpClicked" />
+        <ToolbarItem Text="刷新" Clicked="OnRefreshClicked" />
+        <ToolbarItem x:Name="BatchItem" Text="批量" Clicked="OnBatchToggleClicked" />
+    </ContentPage.ToolbarItems>
+
+    <Grid BackgroundColor="#0D1117">
+
+        <!-- 文件列表 -->
+        <Grid>
+            <CollectionView x:Name="FileList" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:SmbEntry">
+                        <Grid Padding="16,12"
+                              ColumnDefinitions="Auto,*,Auto"
+                              BackgroundColor="#0D1117">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnEntryTapped" />
+                            </Grid.GestureRecognizers>
+                            <Label Text="{Binding Icon}" FontSize="22" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Margin="12,0,0,0"
+                                                 VerticalOptions="Center" Spacing="2">
+                                <Label Text="{Binding Name}"
+                                       TextColor="#E6EDF3" FontSize="16"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding DisplayInfo}"
+                                       TextColor="#8B949E" FontSize="12" />
+                            </VerticalStackLayout>
+                            <!-- 文件夹：进入箭头 -->
+                            <Label Grid.Column="2"
+                                   Text="›"
+                                   TextColor="#58A6FF" FontSize="20"
+                                   IsVisible="{Binding IsDirectory}"
+                                   VerticalOptions="Center" />
+                            <!-- 文件：单个下载按钮（非批量模式） -->
+                            <Button Grid.Column="2"
+                                    Text="⬇ 下载"
+                                    IsVisible="{Binding ShowDownloadButton}"
+                                    Clicked="OnDownloadClicked"
+                                    BackgroundColor="#21262D" TextColor="#A371F7"
+                                    FontSize="13" HeightRequest="38" CornerRadius="9"
+                                    Padding="14,0" VerticalOptions="Center" />
+                            <!-- 文件：批量勾选框 -->
+                            <CheckBox Grid.Column="2"
+                                      IsVisible="{Binding ShowCheckbox}"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      CheckedChanged="OnItemCheckedChanged"
+                                      Color="#A371F7"
+                                      VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label x:Name="EmptyLabel"
+                   Text="此目录为空"
+                   TextColor="#8B949E" FontSize="15"
+                   HorizontalOptions="Center" VerticalOptions="Center"
+                   IsVisible="False" />
+        </Grid>
+
+        <!-- 下载进度面板（悬浮顶部） -->
+        <Grid x:Name="ProgressPanel"
+              IsVisible="False"
+              Padding="14,10"
+              RowDefinitions="Auto,Auto"
+              ColumnDefinitions="*,Auto"
+              BackgroundColor="#161B22"
+              VerticalOptions="Start">
+            <ProgressBar x:Name="ProgressBar"
+                         Grid.Row="0" Grid.ColumnSpan="2"
+                         ProgressColor="#A371F7"
+                         BackgroundColor="#21262D"
+                         HeightRequest="6" />
+            <Label x:Name="ProgressLabel"
+                   Grid.Row="1" Grid.Column="0"
+                   TextColor="#8B949E" FontSize="13"
+                   Margin="0,6,0,0" VerticalOptions="Center" />
+            <Button x:Name="CancelBtn"
+                    Grid.Row="1" Grid.Column="1"
+                    Text="取消" FontSize="13"
+                    BackgroundColor="#21262D" TextColor="#F85149"
+                    HeightRequest="32" Padding="14,0"
+                    Margin="10,4,0,0"
+                    Clicked="OnCancelClicked" />
+        </Grid>
+
+        <!-- 底部批量操作面板 -->
+        <Border x:Name="BatchPanel"
+                IsVisible="False"
+                BackgroundColor="#161B22"
+                Stroke="#A371F7"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 14"
+                Padding="12,10"
+                Margin="10,0,10,14"
+                VerticalOptions="End">
+            <VerticalStackLayout Spacing="8">
+                <Button x:Name="BatchDownloadBtn"
+                        Text="下载所选 (0)"
+                        Clicked="OnBatchDownloadClicked"
+                        BackgroundColor="#A371F7" TextColor="#FFFFFF"
+                        HeightRequest="48" CornerRadius="10"
+                        FontSize="16" FontAttributes="Bold" />
+                <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                    <Button Text="全选" Clicked="OnSelectAll"
+                            BackgroundColor="#21262D" TextColor="#E6EDF3"
+                            HeightRequest="42" CornerRadius="9" FontSize="14" />
+                    <Button Grid.Column="1" Text="反选" Clicked="OnInvertSelection"
+                            BackgroundColor="#21262D" TextColor="#E6EDF3"
+                            HeightRequest="42" CornerRadius="9" FontSize="14" />
+                    <Button Grid.Column="2" Text="全不选" Clicked="OnSelectNone"
+                            BackgroundColor="#21262D" TextColor="#E6EDF3"
+                            HeightRequest="42" CornerRadius="9" FontSize="14" />
+                    <Button Grid.Column="3" Text="取消批量" Clicked="OnCancelBatch"
+                            BackgroundColor="#21262D" TextColor="#F85149"
+                            HeightRequest="42" CornerRadius="9" FontSize="14" />
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- 顶部下滑横幅 -->
+        <controls:TopBannerView x:Name="Banner"
+                                VerticalOptions="Start"
+                                HorizontalOptions="Fill" />
+    </Grid>
+
+</ContentPage>

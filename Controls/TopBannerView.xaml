@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Fast_smb.Controls.TopBannerView">
+
+    <Border x:Name="Banner"
+            BackgroundColor="#1F2428"
+            Stroke="#A371F7"
+            StrokeThickness="1.5"
+            StrokeShape="RoundRectangle 12"
+            Padding="16,10"
+            Margin="12,8,12,0"
+            HorizontalOptions="Fill"
+            VerticalOptions="Start"
+            IsVisible="False"
+            TranslationY="-80">
+        <Label x:Name="MsgLabel"
+               TextColor="#E6EDF3"
+               FontSize="14"
+               HorizontalTextAlignment="Center"
+               LineBreakMode="TailTruncation" />
+    </Border>
+
+</ContentView>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Fast_smb.Controls"
+             x:Class="Fast_smb.Pages.ConnectPage"
+             Title="连接"
+             BackgroundColor="#0D1117"
+             Shell.NavBarIsVisible="False">
+
+    <ContentPage.Resources>
+        <!-- 输入框：无背景色，暗色主题下仅文字/占位符着亮色 -->
+        <Style TargetType="Entry">
+            <Setter Property="TextColor" Value="#E6EDF3" />
+            <Setter Property="PlaceholderColor" Value="#8B949E" />
+            <Setter Property="HeightRequest" Value="52" />
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="BackgroundColor" Value="#238636" />
+            <Setter Property="TextColor" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="HeightRequest" Value="52" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontAttributes" Value="Bold" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Padding="28,0" Spacing="14" VerticalOptions="Center">
+
+                <Label Text="FastSMB"
+                       FontSize="40"
+                       FontAttributes="Bold"
+                       TextColor="#A371F7"
+                       HorizontalOptions="Center" />
+
+                <Label Text="SMB 连接与文件管理"
+                       FontSize="15"
+                       TextColor="#8B949E"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,18" />
+
+                <Label Text="服务器 IP / 主机名" TextColor="#E6EDF3" FontSize="14" />
+                <Entry x:Name="HostEntry"
+                       Placeholder="例如 192.168.1.100（可带 :端口 或 /共享名）"
+                       Keyboard="Plain"
+                       ReturnType="Next" />
+
+                <Label Text="共享名（可选，留空自动检测）" TextColor="#E6EDF3" FontSize="14" />
+                <Entry x:Name="ShareEntry"
+                       Placeholder="例如 WD_DATA"
+                       Keyboard="Plain"
+                       ReturnType="Next" />
+
+                <Label Text="用户名（可留空）" TextColor="#E6EDF3" FontSize="14" />
+                <Entry x:Name="UserEntry"
+                       Placeholder="用户名"
+                       ReturnType="Next" />
+
+                <Label Text="密码" TextColor="#E6EDF3" FontSize="14" />
+                <Entry x:Name="PassEntry"
+                       Placeholder="密码"
+                       IsPassword="True"
+                       ReturnType="Go"
+                       Completed="OnConnectClicked" />
+
+                <!-- 记住输入 -->
+                <Grid ColumnDefinitions="Auto,*" Margin="0,2,0,0">
+                    <CheckBox x:Name="RememberCheck" Color="#A371F7" Grid.Column="0"
+                              VerticalOptions="Center" />
+                    <Label Text="记住输入"
+                           TextColor="#8B949E" FontSize="14"
+                           Grid.Column="1" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnRememberLabelTapped" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </Grid>
+
+                <Button x:Name="ConnectBtn"
+                        Text="连 接"
+                        Clicked="OnConnectClicked"
+                        Margin="0,10,0,0" />
+
+                <ActivityIndicator x:Name="Busy" IsRunning="False" IsVisible="False"
+                                   Color="#A371F7" HeightRequest="36" />
+
+                <Label x:Name="StatusLabel"
+                       TextColor="#F85149"
+                       FontSize="14"
+                       HorizontalTextAlignment="Center"
+                       IsVisible="False" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- 应用内共享选择弹窗 -->
+        <controls:SharePickerView x:Name="SharePicker" />
+    </Grid>
+
+</ContentPage>

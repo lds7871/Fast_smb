@@ -1,0 +1,59 @@
+# ========== .NET / 构建输出 ==========
+bin/
+obj/
+*.user
+*.userprefs
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ========== Rider / VS / VS Code ==========
+.idea/
+.vs/
+.vscode/
+.vsconfig
+*.swp
+*~
+
+# ========== MAUI / 移动平台 ==========
+# Android 签名文件与密钥（切勿提交）
+*.keystore
+*.jks
+*.key
+*.p12
+*.pfx
+# iOS 相关
+*.ipa
+*.apk
+*.aab
+# MAUI 热重载/调试
+*.binlog
+*.sarif
+
+# ========== 测试与覆盖率 ==========
+[Tt]est[Rr]esult*/
+[Bb]uild[Rr]esult*/
+coverage/
+*.coverage
+*.coveragexml
+
+# ========== 发布产物 ==========
+publish/
+[Pp]ublish/
+*.publish.xml
+
+# ========== 系统文件 ==========
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========== 日志 ==========
+logs/
+*.log

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Fast_smb.Controls.SharePickerView"
+             IsVisible="False">
+
+    <Grid>
+        <!-- 半透明遮罩 -->
+        <BoxView x:Name="Scrim" Color="#A0000000" Opacity="0" />
+
+        <!-- 紫色边框卡片 -->
+        <Border x:Name="Card"
+                BackgroundColor="#161B22"
+                Stroke="#A371F7"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 16"
+                Padding="20,18"
+                WidthRequest="340"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Opacity="0"
+                Scale="0.92">
+            <VerticalStackLayout Spacing="10">
+                <Label Text="选择共享"
+                       TextColor="#E6EDF3" FontSize="18" FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+                <VerticalStackLayout x:Name="ShareList" Spacing="6" />
+                <Button Text="取消"
+                        Clicked="OnCancelClicked"
+                        BackgroundColor="#21262D" TextColor="#8B949E"
+                        HeightRequest="44" CornerRadius="10" FontSize="15" />
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+
+</ContentView>

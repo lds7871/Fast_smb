@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Fast_smb.Pages.PreviewPage"
+             Title="预览"
+             BackgroundColor="#0D1117">
+
+    <Grid>
+        <ScrollView x:Name="TextScroll" IsVisible="False">
+            <Label x:Name="TextLabel"
+                   TextColor="#E6EDF3"
+                   FontSize="14"
+                   Padding="16"
+                   LineBreakMode="WordWrap" />
+        </ScrollView>
+
+        <Image x:Name="PreviewImage"
+               IsVisible="False"
+               Aspect="AspectFit"
+               Margin="10" />
+
+        <ActivityIndicator x:Name="Busy"
+                           IsRunning="True"
+                           IsVisible="True"
+                           Color="#A371F7"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center" />
+    </Grid>
+
+</ContentPage>
