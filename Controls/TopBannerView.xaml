@@ -4,8 +4,8 @@
              x:Class="Fast_smb.Controls.TopBannerView">
 
     <Border x:Name="Banner"
-            BackgroundColor="#1F2428"
-            Stroke="#A371F7"
+            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface3Dark}, Light={StaticResource Surface3Light}}"
+            Stroke="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
             StrokeThickness="1.5"
             StrokeShape="RoundRectangle 12"
             Padding="16,10"
@@ -15,7 +15,7 @@
             IsVisible="False"
             TranslationY="-80">
         <Label x:Name="MsgLabel"
-               TextColor="#E6EDF3"
+               TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
                FontSize="14"
                HorizontalTextAlignment="Center"
                LineBreakMode="TailTruncation" />

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ========== 语义化主题色板（亮/暗两套，通过 UserAppTheme + AppThemeBinding 切换） ========== -->
+
+    <!-- 页面背景 -->
+    <Color x:Key="BgLight">#F6F8FA</Color>
+    <Color x:Key="BgDark">#0D1117</Color>
+
+    <!-- 卡片/面板背景 -->
+    <Color x:Key="SurfaceLight">#FFFFFF</Color>
+    <Color x:Key="SurfaceDark">#161B22</Color>
+
+    <!-- 次级按钮背景 -->
+    <Color x:Key="Surface2Light">#EFF2F5</Color>
+    <Color x:Key="Surface2Dark">#21262D</Color>
+
+    <!-- 横幅等三级面板 -->
+    <Color x:Key="Surface3Light">#E8EDF2</Color>
+    <Color x:Key="Surface3Dark">#1F2428</Color>
+
+    <!-- 边框 -->
+    <Color x:Key="BorderLight">#D0D7DE</Color>
+    <Color x:Key="BorderDark">#30363D</Color>
+
+    <!-- 主文字 -->
+    <Color x:Key="TextPrimaryLight">#1F2328</Color>
+    <Color x:Key="TextPrimaryDark">#E6EDF3</Color>
+
+    <!-- 次要文字 -->
+    <Color x:Key="TextSecondaryLight">#656D76</Color>
+    <Color x:Key="TextSecondaryDark">#8B949E</Color>
+
+    <!-- 正文（多行文本） -->
+    <Color x:Key="TextBodyLight">#24292F</Color>
+    <Color x:Key="TextBodyDark">#C9D1D9</Color>
+
+    <!-- 强调色（按钮/高亮上的文字） -->
+    <Color x:Key="TextOnAccentLight">#FFFFFF</Color>
+    <Color x:Key="TextOnAccentDark">#FFFFFF</Color>
+
+    <!-- 主题强调色（紫） -->
+    <Color x:Key="AccentLight">#6E40C9</Color>
+    <Color x:Key="AccentDark">#A371F7</Color>
+
+    <!-- 链接/箭头蓝 -->
+    <Color x:Key="LinkLight">#0969DA</Color>
+    <Color x:Key="LinkDark">#58A6FF</Color>
+
+    <!-- 错误红 -->
+    <Color x:Key="ErrorLight">#CF222E</Color>
+    <Color x:Key="ErrorDark">#F85149</Color>
+
+    <!-- 成功绿 -->
+    <Color x:Key="SuccessLight">#1A7F37</Color>
+    <Color x:Key="SuccessDark">#238636</Color>
+
+    <!-- 弹窗遮罩 -->
+    <Color x:Key="ScrimLight">#66000000</Color>
+    <Color x:Key="ScrimDark">#B0000000</Color>
+
+</ResourceDictionary>

@@ -4,20 +4,20 @@
              xmlns:controls="clr-namespace:Fast_smb.Controls"
              x:Class="Fast_smb.Pages.ConnectPage"
              Title="连接"
-             BackgroundColor="#0D1117"
+             BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}"
              Shell.NavBarIsVisible="False">
 
     <ContentPage.Resources>
         <!-- 输入框：无背景色，暗色主题下仅文字/占位符着亮色 -->
         <Style TargetType="Entry">
-            <Setter Property="TextColor" Value="#E6EDF3" />
-            <Setter Property="PlaceholderColor" Value="#8B949E" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" />
+            <Setter Property="PlaceholderColor" Value="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}" />
             <Setter Property="HeightRequest" Value="52" />
             <Setter Property="FontSize" Value="16" />
         </Style>
         <Style TargetType="Button">
-            <Setter Property="BackgroundColor" Value="#A371F7" />
-            <Setter Property="TextColor" Value="#FFFFFF" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Dark={StaticResource TextOnAccentDark}, Light={StaticResource TextOnAccentLight}}" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="HeightRequest" Value="52" />
             <Setter Property="FontSize" Value="17" />
@@ -32,33 +32,33 @@
                 <Label Text="FastSMB"
                        FontSize="40"
                        FontAttributes="Bold"
-                       TextColor="#A371F7"
+                       TextColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
                        HorizontalOptions="Center" />
 
                 <Label Text="SMB 连接与文件管理"
                        FontSize="15"
-                       TextColor="#8B949E"
+                       TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}"
                        HorizontalOptions="Center"
                        Margin="0,0,0,18" />
 
-                <Label Text="服务器 IP / 主机名" TextColor="#E6EDF3" FontSize="14" />
+                <Label Text="IP / 主机" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="14" />
                 <Entry x:Name="HostEntry"
-                       Placeholder="例如 192.168.1.100（可带 :端口 或 /共享名）"
+                       Placeholder="192.168.1.1"
                        Keyboard="Plain"
                        ReturnType="Next" />
 
-                <Label Text="共享名（可选，留空自动检测）" TextColor="#E6EDF3" FontSize="14" />
+                <Label Text="共享名" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="14" />
                 <Entry x:Name="ShareEntry"
-                       Placeholder="例如 WD_DATA"
+                       Placeholder="可选，留空自动检测"
                        Keyboard="Plain"
                        ReturnType="Next" />
 
-                <Label Text="用户名（可留空）" TextColor="#E6EDF3" FontSize="14" />
+                <Label Text="用户名" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="14" />
                 <Entry x:Name="UserEntry"
-                       Placeholder="用户名"
+                       Placeholder="根据服务可选择留空"
                        ReturnType="Next" />
 
-                <Label Text="密码" TextColor="#E6EDF3" FontSize="14" />
+                <Label Text="密码" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="14" />
                 <Entry x:Name="PassEntry"
                        Placeholder="密码"
                        IsPassword="True"
@@ -67,10 +67,10 @@
 
                 <!-- 记住输入 -->
                 <Grid ColumnDefinitions="Auto,*" Margin="0,2,0,0">
-                    <CheckBox x:Name="RememberCheck" Color="#A371F7" Grid.Column="0"
+                    <CheckBox x:Name="RememberCheck" Color="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}" Grid.Column="0"
                               VerticalOptions="Center" />
                     <Label Text="记住输入"
-                           TextColor="#8B949E" FontSize="14"
+                           TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}" FontSize="14"
                            Grid.Column="1" VerticalOptions="Center">
                         <Label.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnRememberLabelTapped" />
@@ -84,10 +84,10 @@
                         Margin="0,10,0,0" />
 
                 <ActivityIndicator x:Name="Busy" IsRunning="False" IsVisible="False"
-                                   Color="#A371F7" HeightRequest="36" />
+                                   Color="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}" HeightRequest="36" />
 
                 <Label x:Name="StatusLabel"
-                       TextColor="#F85149"
+                       TextColor="{AppThemeBinding Dark={StaticResource ErrorDark}, Light={StaticResource ErrorLight}}"
                        FontSize="14"
                        HorizontalTextAlignment="Center"
                        IsVisible="False" />
@@ -95,17 +95,26 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- 右上角帮助按钮 -->
-        <Button Text="帮助"
-                Clicked="OnHelpClicked"
-                BackgroundColor="Transparent" TextColor="#A371F7"
-                FontSize="15" Padding="14,6"
-                HorizontalOptions="End" VerticalOptions="Start"
-                Margin="0,16,12,0" />
+        <!-- 右上角：主题切换 + 帮助 -->
+        <HorizontalStackLayout Spacing="4"
+                               HorizontalOptions="End" VerticalOptions="Start"
+                               Margin="0,16,12,0">
+            <Button x:Name="ThemeBtn"
+                    Text="🌙"
+                    Clicked="OnThemeToggleClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
+                    FontSize="15" Padding="14,6" />
+            <Button Text="帮助"
+                    Clicked="OnHelpClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
+                    FontSize="15" Padding="14,6" />
+        </HorizontalStackLayout>
 
         <!-- 连接注意事项浮层（覆盖当前页面，居中窗口） -->
         <BoxView x:Name="NotesScrim"
-                 Color="#B0000000"
+                 Color="{AppThemeBinding Dark={StaticResource ScrimDark}, Light={StaticResource ScrimLight}}"
                  Opacity="0"
                  IsVisible="False">
             <BoxView.GestureRecognizers>
@@ -115,8 +124,8 @@
 
         <Border x:Name="NotesCard"
                 IsVisible="False"
-                BackgroundColor="#161B22"
-                Stroke="#A371F7"
+                BackgroundColor="{AppThemeBinding Dark={StaticResource SurfaceDark}, Light={StaticResource SurfaceLight}}"
+                Stroke="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
                 StrokeThickness="2"
                 StrokeShape="RoundRectangle 16"
                 Padding="20,18"
@@ -128,17 +137,17 @@
                 Scale="0.94">
             <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
                 <Label Text="连接注意事项"
-                       TextColor="#E6EDF3" FontSize="18" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="18" FontAttributes="Bold"
                        HorizontalOptions="Center" />
                 <ScrollView Grid.Row="1" MaximumHeightRequest="680">
                     <Label x:Name="NotesLabel"
-                           TextColor="#C9D1D9" FontSize="14"
+                           TextColor="{AppThemeBinding Dark={StaticResource TextBodyDark}, Light={StaticResource TextBodyLight}}" FontSize="14"
                            LineBreakMode="WordWrap" />
                 </ScrollView>
                 <Button Grid.Row="2"
                         Text="知道了"
                         Clicked="OnNotesCloseClicked"
-                        BackgroundColor="#A371F7" TextColor="#FFFFFF"
+                        BackgroundColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}" TextColor="{AppThemeBinding Dark={StaticResource TextOnAccentDark}, Light={StaticResource TextOnAccentLight}}"
                         HeightRequest="44" CornerRadius="10" FontSize="15" />
             </Grid>
         </Border>

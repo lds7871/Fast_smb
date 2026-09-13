@@ -5,7 +5,7 @@
              xmlns:controls="clr-namespace:Fast_smb.Controls"
              x:Class="Fast_smb.Pages.FileBrowserPage"
              Title="文件"
-             BackgroundColor="#0D1117">
+             BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="上级" Clicked="OnUpClicked" />
@@ -14,7 +14,7 @@
         <ToolbarItem x:Name="BatchItem" Text="批量" Clicked="OnBatchToggleClicked" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,*" BackgroundColor="#0D1117">
+    <Grid RowDefinitions="Auto,*" BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
 
         <!-- 搜索栏（点击顶栏「搜索」弹出） -->
         <Grid x:Name="SearchBar"
@@ -23,20 +23,20 @@
               Padding="14,8"
               ColumnDefinitions="*,Auto"
               ColumnSpacing="10"
-              BackgroundColor="#161B22">
+              BackgroundColor="{AppThemeBinding Dark={StaticResource SurfaceDark}, Light={StaticResource SurfaceLight}}">
             <Entry x:Name="SearchEntry"
                    Placeholder="搜索当前目录文件名…"
                    TextChanged="OnSearchTextChanged"
                    ClearButtonVisibility="WhileEditing"
                    ReturnType="Search"
-                   TextColor="#E6EDF3"
-                   PlaceholderColor="#8B949E"
+                   TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
+                   PlaceholderColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}"
                    HeightRequest="44"
                    FontSize="15" />
             <Button Grid.Column="1"
                     Text="取消"
                     Clicked="OnSearchCancelClicked"
-                    BackgroundColor="Transparent" TextColor="#A371F7"
+                    BackgroundColor="Transparent" TextColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
                     HeightRequest="44" CornerRadius="9" FontSize="14"
                     Padding="18,0" />
         </Grid>
@@ -48,7 +48,7 @@
                     <DataTemplate x:DataType="models:SmbEntry">
                         <Grid Padding="16,12"
                               ColumnDefinitions="Auto,*,Auto"
-                              BackgroundColor="#0D1117">
+                              BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
                             <Grid.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnEntryTapped" />
                             </Grid.GestureRecognizers>
@@ -56,15 +56,15 @@
                             <VerticalStackLayout Grid.Column="1" Margin="12,0,0,0"
                                                  VerticalOptions="Center" Spacing="2">
                                 <Label Text="{Binding Name}"
-                                       TextColor="#E6EDF3" FontSize="16"
+                                       TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="16"
                                        LineBreakMode="TailTruncation" />
                                 <Label Text="{Binding DisplayInfo}"
-                                       TextColor="#8B949E" FontSize="12" />
+                                       TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}" FontSize="12" />
                             </VerticalStackLayout>
                             <!-- 文件夹：进入箭头 -->
                             <Label Grid.Column="2"
                                    Text="›"
-                                   TextColor="#58A6FF" FontSize="20"
+                                   TextColor="{AppThemeBinding Dark={StaticResource LinkDark}, Light={StaticResource LinkLight}}" FontSize="20"
                                    IsVisible="{Binding IsDirectory}"
                                    VerticalOptions="Center" />
                             <!-- 文件：单个下载按钮（非批量模式） -->
@@ -72,7 +72,7 @@
                                     Text="⬇ 下载"
                                     IsVisible="{Binding ShowDownloadButton}"
                                     Clicked="OnDownloadClicked"
-                                    BackgroundColor="#21262D" TextColor="#A371F7"
+                                    BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
                                     FontSize="13" HeightRequest="38" CornerRadius="9"
                                     Padding="14,0" VerticalOptions="Center" />
                             <!-- 文件：批量勾选框 -->
@@ -80,7 +80,7 @@
                                       IsVisible="{Binding ShowCheckbox}"
                                       IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                       CheckedChanged="OnItemCheckedChanged"
-                                      Color="#A371F7"
+                                      Color="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
                                       VerticalOptions="Center" />
                         </Grid>
                     </DataTemplate>
@@ -89,7 +89,7 @@
 
             <Label x:Name="EmptyLabel"
                    Text="此目录为空"
-                   TextColor="#8B949E" FontSize="15"
+                   TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}" FontSize="15"
                    HorizontalOptions="Center" VerticalOptions="Center"
                    IsVisible="False" />
         </Grid>
@@ -101,21 +101,21 @@
               Padding="14,10"
               RowDefinitions="Auto,Auto"
               ColumnDefinitions="*,Auto"
-              BackgroundColor="#161B22"
+              BackgroundColor="{AppThemeBinding Dark={StaticResource SurfaceDark}, Light={StaticResource SurfaceLight}}"
               VerticalOptions="Start">
             <ProgressBar x:Name="ProgressBar"
                          Grid.Row="0" Grid.ColumnSpan="2"
-                         ProgressColor="#A371F7"
-                         BackgroundColor="#21262D"
+                         ProgressColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
+                         BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}"
                          HeightRequest="6" />
             <Label x:Name="ProgressLabel"
                    Grid.Row="1" Grid.Column="0"
-                   TextColor="#8B949E" FontSize="13"
+                   TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}" FontSize="13"
                    Margin="0,6,0,0" VerticalOptions="Center" />
             <Button x:Name="CancelBtn"
                     Grid.Row="1" Grid.Column="1"
                     Text="取消" FontSize="13"
-                    BackgroundColor="#21262D" TextColor="#F85149"
+                    BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource ErrorDark}, Light={StaticResource ErrorLight}}"
                     HeightRequest="32" Padding="14,0"
                     Margin="10,4,0,0"
                     Clicked="OnCancelClicked" />
@@ -125,8 +125,8 @@
         <Border x:Name="BatchPanel"
                 Grid.Row="0" Grid.RowSpan="2"
                 IsVisible="False"
-                BackgroundColor="#161B22"
-                Stroke="#A371F7"
+                BackgroundColor="{AppThemeBinding Dark={StaticResource SurfaceDark}, Light={StaticResource SurfaceLight}}"
+                Stroke="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
                 StrokeThickness="1"
                 StrokeShape="RoundRectangle 14"
                 Padding="12,10"
@@ -136,21 +136,21 @@
                 <Button x:Name="BatchDownloadBtn"
                         Text="下载所选 (0)"
                         Clicked="OnBatchDownloadClicked"
-                        BackgroundColor="#A371F7" TextColor="#FFFFFF"
+                        BackgroundColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}" TextColor="{AppThemeBinding Dark={StaticResource TextOnAccentDark}, Light={StaticResource TextOnAccentLight}}"
                         HeightRequest="48" CornerRadius="10"
                         FontSize="16" FontAttributes="Bold" />
                 <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
                     <Button Text="全选" Clicked="OnSelectAll"
-                            BackgroundColor="#21262D" TextColor="#E6EDF3"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
                             HeightRequest="42" CornerRadius="9" FontSize="14" />
                     <Button Grid.Column="1" Text="反选" Clicked="OnInvertSelection"
-                            BackgroundColor="#21262D" TextColor="#E6EDF3"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
                             HeightRequest="42" CornerRadius="9" FontSize="14" />
                     <Button Grid.Column="2" Text="全不选" Clicked="OnSelectNone"
-                            BackgroundColor="#21262D" TextColor="#E6EDF3"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
                             HeightRequest="42" CornerRadius="9" FontSize="14" />
                     <Button Grid.Column="3" Text="取消批量" Clicked="OnCancelBatch"
-                            BackgroundColor="#21262D" TextColor="#F85149"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource ErrorDark}, Light={StaticResource ErrorLight}}"
                             HeightRequest="42" CornerRadius="9" FontSize="14" />
                 </Grid>
             </VerticalStackLayout>

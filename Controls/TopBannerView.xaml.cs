@@ -1,3 +1,5 @@
+using Fast_smb.Services;
+
 namespace Fast_smb.Controls;
 
 /// <summary>
@@ -13,8 +15,8 @@ public partial class TopBannerView : ContentView
     public Task ShowAsync(string message, bool error = false, int durationMs = 1000)
     {
         MsgLabel.Text = message;
-        MsgLabel.TextColor = error ? Color.FromArgb("#F85149") : Color.FromArgb("#E6EDF3");
-        Banner.Stroke = error ? Color.FromArgb("#F85149") : Color.FromArgb("#A371F7");
+        MsgLabel.TextColor = error ? Theme.Get("Error") : Theme.Get("TextPrimary");
+        Banner.Stroke = error ? Theme.Get("Error") : Theme.Get("Accent");
         return AnimateAsync(durationMs);
     }
 

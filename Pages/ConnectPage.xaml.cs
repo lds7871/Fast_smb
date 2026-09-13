@@ -33,9 +33,20 @@ public partial class ConnectPage : ContentPage
         UserEntry.Text = _lastUser;
         PassEntry.Text = _lastPass;
 
+        // 主题按钮图标：当前暗色显示 🌙，亮色显示 ☀️
+        ThemeBtn.Text = Application.Current?.UserAppTheme == AppTheme.Light ? "☀️" : "🌙";
+
         // 退出到主界面默认断开（从文件浏览器返回时）
         if (SmbSession.Instance.IsConnected)
             SmbSession.Instance.Disconnect();
+    }
+
+    // ---------- 主题切换 ----------
+
+    private void OnThemeToggleClicked(object? sender, EventArgs e)
+    {
+        var next = Theme.Toggle();
+        ThemeBtn.Text = next == AppTheme.Light ? "☀️" : "🌙";
     }
 
     private void OnRememberLabelTapped(object? sender, TappedEventArgs e)
@@ -238,7 +249,7 @@ public partial class ConnectPage : ContentPage
 
     private void ShowError(string message)
     {
-        StatusLabel.TextColor = Color.FromArgb("#F85149");
+        // 颜色由 XAML 按主题绑定（Error 色），这里只设置文本与可见性
         StatusLabel.Text = message;
         StatusLabel.IsVisible = true;
     }

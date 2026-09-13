@@ -1,3 +1,5 @@
+using Fast_smb.Services;
+
 namespace Fast_smb.Controls;
 
 /// <summary>
@@ -21,8 +23,8 @@ public partial class SharePickerView : ContentView
             var btn = new Button
             {
                 Text = share,
-                BackgroundColor = Color.FromArgb("#21262D"),
-                TextColor = Color.FromArgb("#A371F7"),
+                BackgroundColor = Theme.Get("Surface2"),
+                TextColor = Theme.Get("Accent"),
                 FontSize = 16,
                 HeightRequest = 48,
                 CornerRadius = 10,
