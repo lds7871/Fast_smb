@@ -43,6 +43,61 @@ public partial class ConnectPage : ContentPage
         RememberCheck.IsChecked = !RememberCheck.IsChecked;
     }
 
+    // ---------- 连接注意事项浮层 ----------
+
+    private const string NotesText =
+        "【连接前】\n" +
+        "• 服务器地址：填 NAS / 电脑的局域网 IP，例如 192.168.1.100\n" +
+        "• 可带端口或共享名：IP:4450 或 IP/WD_DATA\n" +
+        "• 共享名可留空自动检测；若服务器不支持枚举，建议手动填写\n" +
+        "• 用户名 / 密码：NAS 的 SMB 账号，留空表示匿名访问\n" +
+        "• 手机与服务器需在同一局域网，且服务器已开启 SMB（445 端口）\n" +
+        "• 连不上时：核对 IP、确认 445 开放、检查账号共享权限\n" +
+        "• 老设备服务器可能仅支持 SMB1，应用会自动回退尝试\n\n" +
+        "【连接后】\n" +
+        "• 点文件夹进入，点文件预览（文本 / 图片）\n" +
+        "• 视频、音频会自动调起系统播放器 / 打开方式\n" +
+        "• 点文件右侧「⬇ 下载」单个下载；顶栏「批量」可多选批量下载\n" +
+        "• 下载完成顶部横幅提示，文件保存到手机「下载」目录\n" +
+        "• 顶栏「搜索」按文件名过滤当前目录\n" +
+        "• 返回主界面会自动断开连接";
+
+    private bool _notesVisible;
+
+    private async void OnHelpClicked(object? sender, EventArgs e)
+    {
+        if (_notesVisible)
+            return;
+        _notesVisible = true;
+
+        NotesLabel.Text = NotesText;
+        NotesScrim.IsVisible = true;
+        NotesCard.IsVisible = true;
+        NotesScrim.Opacity = 0;
+        NotesCard.Opacity = 0;
+        NotesCard.Scale = 0.94;
+
+        await Task.WhenAll(
+            NotesScrim.FadeToAsync(1, 130),
+            NotesCard.FadeToAsync(1, 130),
+            NotesCard.ScaleToAsync(1, 140, Easing.CubicOut));
+    }
+
+    private async void OnNotesCloseClicked(object? sender, EventArgs e)
+    {
+        if (!_notesVisible)
+            return;
+        _notesVisible = false;
+
+        await Task.WhenAll(
+            NotesScrim.FadeToAsync(0, 110),
+            NotesCard.FadeToAsync(0, 110),
+            NotesCard.ScaleToAsync(0.95, 110, Easing.CubicIn));
+
+        NotesScrim.IsVisible = false;
+        NotesCard.IsVisible = false;
+    }
+
     private async void OnConnectClicked(object? sender, EventArgs e)
     {
         var hostInput = HostEntry.Text?.Trim() ?? "";

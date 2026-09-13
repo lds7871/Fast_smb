@@ -36,7 +36,7 @@
             <Button Grid.Column="1"
                     Text="取消"
                     Clicked="OnSearchCancelClicked"
-                    BackgroundColor="#21262D" TextColor="#8B949E"
+                    BackgroundColor="Transparent" TextColor="#A371F7"
                     HeightRequest="44" CornerRadius="9" FontSize="14"
                     Padding="18,0" />
         </Grid>

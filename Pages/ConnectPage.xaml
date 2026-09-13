@@ -95,6 +95,54 @@
             </VerticalStackLayout>
         </ScrollView>
 
+        <!-- 右上角帮助按钮 -->
+        <Button Text="帮助"
+                Clicked="OnHelpClicked"
+                BackgroundColor="Transparent" TextColor="#A371F7"
+                FontSize="15" Padding="14,6"
+                HorizontalOptions="End" VerticalOptions="Start"
+                Margin="0,16,12,0" />
+
+        <!-- 连接注意事项浮层（覆盖当前页面，居中窗口） -->
+        <BoxView x:Name="NotesScrim"
+                 Color="#B0000000"
+                 Opacity="0"
+                 IsVisible="False">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnNotesCloseClicked" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+
+        <Border x:Name="NotesCard"
+                IsVisible="False"
+                BackgroundColor="#161B22"
+                Stroke="#A371F7"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 16"
+                Padding="20,18"
+                WidthRequest="360"
+                MaximumHeightRequest="880"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Opacity="0"
+                Scale="0.94">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+                <Label Text="连接注意事项"
+                       TextColor="#E6EDF3" FontSize="18" FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+                <ScrollView Grid.Row="1" MaximumHeightRequest="680">
+                    <Label x:Name="NotesLabel"
+                           TextColor="#C9D1D9" FontSize="14"
+                           LineBreakMode="WordWrap" />
+                </ScrollView>
+                <Button Grid.Row="2"
+                        Text="知道了"
+                        Clicked="OnNotesCloseClicked"
+                        BackgroundColor="#A371F7" TextColor="#FFFFFF"
+                        HeightRequest="44" CornerRadius="10" FontSize="15" />
+            </Grid>
+        </Border>
+
         <!-- 应用内共享选择弹窗 -->
         <controls:SharePickerView x:Name="SharePicker" />
     </Grid>
