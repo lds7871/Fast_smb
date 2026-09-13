@@ -532,6 +532,7 @@ public partial class FileBrowserPage : ContentPage
         finally
         {
             _busy = false;
+            SetProgressVisible(false); // 下载结束隐藏进度面板
         }
     }
 
