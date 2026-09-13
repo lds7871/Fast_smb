@@ -103,6 +103,60 @@ public partial class ConnectPage : ContentPage
         NotesCard.IsVisible = false;
     }
 
+    // ---------- 源代码仓库浮层 ----------
+
+    private bool _repoVisible;
+
+    private async void OnRepoClicked(object? sender, EventArgs e)
+    {
+        if (_repoVisible)
+            return;
+        _repoVisible = true;
+
+        RepoStatus.IsVisible = false;
+        RepoScrim.IsVisible = true;
+        RepoCard.IsVisible = true;
+        RepoScrim.Opacity = 0;
+        RepoCard.Opacity = 0;
+        RepoCard.Scale = 0.94;
+
+        await Task.WhenAll(
+            RepoScrim.FadeToAsync(1, 130),
+            RepoCard.FadeToAsync(1, 130),
+            RepoCard.ScaleToAsync(1, 140, Easing.CubicOut));
+    }
+
+    private async void OnRepoCloseClicked(object? sender, EventArgs e)
+    {
+        if (!_repoVisible)
+            return;
+        _repoVisible = false;
+
+        await Task.WhenAll(
+            RepoScrim.FadeToAsync(0, 110),
+            RepoCard.FadeToAsync(0, 110),
+            RepoCard.ScaleToAsync(0.95, 110, Easing.CubicIn));
+
+        RepoScrim.IsVisible = false;
+        RepoCard.IsVisible = false;
+    }
+
+    private async void OnRepoCopyClicked(object? sender, EventArgs e)
+    {
+        await Clipboard.Default.SetTextAsync(L10n.Instance["repo_url"]);
+
+        RepoStatus.Text = L10n.Instance["repo_copied"];
+        RepoStatus.IsVisible = true;
+        await Task.Delay(1500);
+        if (_repoVisible)
+            RepoStatus.IsVisible = false;
+    }
+
+    private async void OnRepoOpenClicked(object? sender, EventArgs e)
+    {
+        await Browser.Default.OpenAsync(L10n.Instance["repo_url"], BrowserLaunchMode.SystemPreferred);
+    }
+
     private async void OnConnectClicked(object? sender, EventArgs e)
     {
         var hostInput = HostEntry.Text?.Trim() ?? "";

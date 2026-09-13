@@ -29,7 +29,7 @@
         <ScrollView>
             <VerticalStackLayout Padding="28,0" Spacing="14" VerticalOptions="Center">
 
-                <Label Text="FastSMB"
+                <Label Text="SMB快连"
                        FontSize="40"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
@@ -95,6 +95,15 @@
             </VerticalStackLayout>
         </ScrollView>
 
+        <!-- 左上角：源代码仓库按钮 -->
+        <Button Text="{Binding [repo_btn], Source={x:Static l10n:L10n.Instance}}"
+                Clicked="OnRepoClicked"
+                BackgroundColor="Transparent"
+                TextColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
+                FontSize="15" Padding="14,6"
+                HorizontalOptions="Start" VerticalOptions="Start"
+                Margin="12,16,0,0" />
+
         <!-- 右上角：主题切换 + 语言切换 + 帮助 -->
         <HorizontalStackLayout Spacing="4"
                                HorizontalOptions="End" VerticalOptions="Start"
@@ -155,6 +164,64 @@
                         Clicked="OnNotesCloseClicked"
                         BackgroundColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}" TextColor="{AppThemeBinding Dark={StaticResource TextOnAccentDark}, Light={StaticResource TextOnAccentLight}}"
                         HeightRequest="44" CornerRadius="10" FontSize="15" />
+            </Grid>
+        </Border>
+
+        <!-- 源代码仓库浮层 -->
+        <BoxView x:Name="RepoScrim"
+                 Color="{AppThemeBinding Dark={StaticResource ScrimDark}, Light={StaticResource ScrimLight}}"
+                 Opacity="0"
+                 IsVisible="False">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnRepoCloseClicked" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+
+        <Border x:Name="RepoCard"
+                IsVisible="False"
+                BackgroundColor="{AppThemeBinding Dark={StaticResource SurfaceDark}, Light={StaticResource SurfaceLight}}"
+                Stroke="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 16"
+                Padding="20,18"
+                WidthRequest="360"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Opacity="0"
+                Scale="0.94">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Label Text="{Binding [repo_title], Source={x:Static l10n:L10n.Instance}}"
+                       TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="18" FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+                <Label Grid.Row="1"
+                       Text="{Binding [repo_url], Source={x:Static l10n:L10n.Instance}}"
+                       TextColor="{AppThemeBinding Dark={StaticResource LinkDark}, Light={StaticResource LinkLight}}"
+                       FontSize="14" LineBreakMode="WordWrap"
+                       HorizontalTextAlignment="Center" />
+                <Label x:Name="RepoStatus"
+                       Grid.Row="2"
+                       TextColor="{AppThemeBinding Dark={StaticResource SuccessDark}, Light={StaticResource SuccessLight}}"
+                       FontSize="13" HorizontalTextAlignment="Center"
+                       IsVisible="False" />
+                <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button Text="{Binding [repo_copy], Source={x:Static l10n:L10n.Instance}}"
+                            Clicked="OnRepoCopyClicked"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}"
+                            TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
+                            HeightRequest="46" CornerRadius="10" FontSize="15" />
+                    <Button Grid.Column="1"
+                            Text="{Binding [repo_open], Source={x:Static l10n:L10n.Instance}}"
+                            Clicked="OnRepoOpenClicked"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
+                            TextColor="{AppThemeBinding Dark={StaticResource TextOnAccentDark}, Light={StaticResource TextOnAccentLight}}"
+                            HeightRequest="46" CornerRadius="10" FontSize="15" />
+                </Grid>
+                <Button Grid.Row="4"
+                        Text="{Binding [repo_close], Source={x:Static l10n:L10n.Instance}}"
+                        Clicked="OnRepoCloseClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}"
+                        HeightRequest="40" CornerRadius="10" FontSize="14" />
             </Grid>
         </Border>
 
