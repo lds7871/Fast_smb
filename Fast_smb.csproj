@@ -43,6 +43,15 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
+	<!-- Android 正式签名（Release）：密码通过环境变量 SMB_KEYSTORE_PASS 传入，不写入本项目文件 -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Release' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<AndroidKeyStore>true</AndroidKeyStore>
+		<AndroidSigningKeyStore>$(MSBuildProjectDirectory)/release.keystore</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias>smb-release</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass>$(SMB_KEYSTORE_PASS)</AndroidSigningKeyPass>
+		<AndroidSigningStorePass>$(SMB_KEYSTORE_PASS)</AndroidSigningStorePass>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\connect.svg"  ForegroundScale="0.5" Color="#512BD4" />
