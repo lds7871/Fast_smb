@@ -11,6 +11,9 @@ public partial class App : Application
 
 		// 应用上次保存的主题偏好（默认暗色）
 		UserAppTheme = Theme.Load();
+
+		// 应用上次保存的语言偏好（默认中文）
+		L10n.Instance.Load();
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)

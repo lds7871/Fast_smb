@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ContentPage xmlns:l10n="clr-namespace:Fast_smb.Services" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Fast_smb.Pages.PreviewPage"
-             Title="预览"
+             Title="{Binding [preview_title], Source={x:Static l10n:L10n.Instance}}"
              BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
 
     <Grid>

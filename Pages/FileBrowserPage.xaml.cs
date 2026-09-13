@@ -90,10 +90,19 @@ public partial class FileBrowserPage : ContentPage
         Title = string.IsNullOrEmpty(_currentPath) ? share : $"{share} / {_currentPath}";
     }
 
+    private bool _loading;
     private async Task LoadDirectoryAsync()
     {
+        if (_loading)
+            return; // 防止重复加载
+        _loading = true;
         try
         {
+            // 加载期间显示动画并清空上一级内容
+            LoadingPanel.IsVisible = true;
+            FileList.ItemsSource = null;
+            EmptyLabel.IsVisible = false;
+
             var result = await Task.Run(() => SmbSession.Instance.ListDirectory(_currentPath));
             if (result.entries != null)
             {
@@ -103,12 +112,19 @@ public partial class FileBrowserPage : ContentPage
             }
             else
             {
-                await Banner.ShowAsync("无法读取目录：" + (result.message ?? "未知错误"), error: true, durationMs: 2500);
+                ApplySearch();
+                await Banner.ShowAsync(L10n.Instance["load_dir_fail"] + (result.message ?? L10n.Instance["unknown_err"]), error: true, durationMs: 2500);
             }
         }
         catch (Exception ex)
         {
-            await Banner.ShowAsync("无法读取目录：" + ex.Message, error: true, durationMs: 2500);
+            ApplySearch();
+            await Banner.ShowAsync(L10n.Instance["load_dir_fail"] + ex.Message, error: true, durationMs: 2500);
+        }
+        finally
+        {
+            LoadingPanel.IsVisible = false;
+            _loading = false;
         }
     }
 
@@ -177,7 +193,6 @@ public partial class FileBrowserPage : ContentPage
     private void SetBatchMode(bool on)
     {
         _isBatchMode = on;
-        BatchItem.Text = on ? "完成" : "批量";
         BatchPanel.IsVisible = on;
         ApplyBatchModeToEntries();
         if (!on)
@@ -192,7 +207,7 @@ public partial class FileBrowserPage : ContentPage
     {
         if (BatchDownloadBtn == null) return;
         int n = _displayedEntries.Count(e => e.IsSelected);
-        BatchDownloadBtn.Text = n > 0 ? $"下载所选 ({n})" : "下载所选 (0)";
+        BatchDownloadBtn.Text = n > 0 ? $"{L10n.Instance["download_selected"]} ({n})" : $"{L10n.Instance["download_selected"]} (0)";
         BatchDownloadBtn.IsEnabled = n > 0;
     }
 
@@ -230,7 +245,7 @@ public partial class FileBrowserPage : ContentPage
         var targets = _displayedEntries.Where(x => x.IsSelected && !x.IsDirectory).ToList();
         if (targets.Count == 0)
         {
-            await Banner.ShowAsync("请先选择要下载的文件", durationMs: 1500);
+            await Banner.ShowAsync(L10n.Instance["select_first"], durationMs: 1500);
             return;
         }
 
@@ -240,15 +255,15 @@ public partial class FileBrowserPage : ContentPage
         {
             if (_batchAbort)
                 break;
-            ProgressLabel.Text = $"正在下载 {entry.Name} …（{success}/{targets.Count}）";
+            ProgressLabel.Text = $"{L10n.Instance["downloading"]} {entry.Name} …（{success}/{targets.Count}）";
             var ok = await DownloadOneAsync(entry);
             if (ok) success++;
         }
 
         await Banner.ShowAsync(
             _batchAbort
-                ? $"已取消，完成 {success}/{targets.Count}"
-                : $"批量下载完成：{success}/{targets.Count}",
+                ? $"{L10n.Instance["batch_cancelled"]} {success}/{targets.Count}"
+                : $"{L10n.Instance["batch_complete"]}：{success}/{targets.Count}",
             error: success < targets.Count,
             durationMs: 2200);
         SetProgressVisible(false);
@@ -310,7 +325,7 @@ public partial class FileBrowserPage : ContentPage
         if (TextExts.Contains(ext) || ImageExts.Contains(ext))
         {
             int cap = TextExts.Contains(ext) ? 512 * 1024 : 20 * 1024 * 1024;
-            SetProgressVisible(true, $"正在加载预览 {entry.Name} …");
+            SetProgressVisible(true, $"{L10n.Instance["loading_preview"]} {entry.Name} …");
             _cts = new CancellationTokenSource();
             try
             {
@@ -323,12 +338,12 @@ public partial class FileBrowserPage : ContentPage
                 }
                 else
                 {
-                    await Banner.ShowAsync("预览失败：" + (result.message ?? "未知错误"), error: true, durationMs: 2500);
+                    await Banner.ShowAsync(L10n.Instance["preview_fail"] + (result.message ?? L10n.Instance["unknown_err"]), error: true, durationMs: 2500);
                 }
             }
             catch (Exception ex)
             {
-                await Banner.ShowAsync("预览失败：" + ex.Message, error: true, durationMs: 2500);
+                await Banner.ShowAsync(L10n.Instance["preview_fail"] + ex.Message, error: true, durationMs: 2500);
             }
             finally
             {
@@ -345,7 +360,7 @@ public partial class FileBrowserPage : ContentPage
         }
         else
         {
-            await Banner.ShowAsync("该类型暂不支持预览，请点右侧 ⬇ 下载", durationMs: 1800);
+            await Banner.ShowAsync(L10n.Instance["no_preview"], durationMs: 1800);
         }
     }
 
@@ -359,13 +374,13 @@ public partial class FileBrowserPage : ContentPage
         var token = _cts.Token;
 
         var cacheFile = Path.Combine(FileSystem.CacheDirectory, SanitizeName(entry.Name));
-        SetProgressVisible(true, $"正在加载 {entry.Name} …");
+        SetProgressVisible(true, $"{L10n.Instance["loading"]} {entry.Name} …");
         ProgressBar.Progress = 0;
 
         var progress = new Progress<double>(p =>
         {
             ProgressBar.Progress = p;
-            ProgressLabel.Text = $"正在加载 {entry.Name} · {p:P0}";
+            ProgressLabel.Text = $"{L10n.Instance["loading"]} {entry.Name} · {p:P0}";
         });
 
         try
@@ -378,7 +393,7 @@ public partial class FileBrowserPage : ContentPage
 
             if (!result.ok)
             {
-                await Banner.ShowAsync("加载失败：" + (result.message ?? "未知错误"), error: true, durationMs: 2500);
+                await Banner.ShowAsync(L10n.Instance["load_fail"] + (result.message ?? L10n.Instance["unknown_err"]), error: true, durationMs: 2500);
                 return;
             }
 
@@ -397,7 +412,7 @@ public partial class FileBrowserPage : ContentPage
         }
         catch (Exception ex)
         {
-            await Banner.ShowAsync("加载失败：" + ex.Message, error: true, durationMs: 2500);
+            await Banner.ShowAsync(L10n.Instance["load_fail"] + ex.Message, error: true, durationMs: 2500);
         }
         finally
         {
@@ -412,7 +427,7 @@ public partial class FileBrowserPage : ContentPage
     {
         var ok = await DownloadOneAsync(entry);
         await Banner.ShowAsync(
-            ok ? $"✓ 下载完成：{entry.Name}" : "下载失败",
+            ok ? $"{L10n.Instance["download_done"]}{entry.Name}" : L10n.Instance["download_failed"],
             error: !ok,
             durationMs: ok ? 1000 : 2500);
     }
@@ -427,13 +442,13 @@ public partial class FileBrowserPage : ContentPage
         var token = _cts.Token;
 
         var remotePath = CombinePath(_currentPath, entry.Name);
-        SetProgressVisible(true, $"正在下载 {entry.Name} …");
+        SetProgressVisible(true, $"{L10n.Instance["downloading"]} {entry.Name} …");
         ProgressBar.Progress = 0;
 
         var progress = new Progress<double>(p =>
         {
             ProgressBar.Progress = p;
-            ProgressLabel.Text = $"正在下载 {entry.Name} · {p:P0}";
+            ProgressLabel.Text = $"{L10n.Instance["downloading"]} {entry.Name} · {p:P0}";
         });
 
         try
@@ -442,7 +457,7 @@ public partial class FileBrowserPage : ContentPage
             {
                 using var output = DownloadSaver.CreateDownloadStream(entry.Name);
                 if (output == null)
-                    return (ok: false, message: "无法创建本地文件（存储不可用）");
+                    return (ok: false, message: L10n.Instance["create_file_fail"]);
                 return await SmbSession.Instance.DownloadFileAsync(remotePath, output, progress, token);
             });
 
@@ -450,7 +465,7 @@ public partial class FileBrowserPage : ContentPage
             {
                 return true;
             }
-            await Banner.ShowAsync("下载失败：" + (result.message ?? "未知错误"), error: true, durationMs: 1800);
+            await Banner.ShowAsync(L10n.Instance["download_fail"] + (result.message ?? L10n.Instance["unknown_err"]), error: true, durationMs: 1800);
             return false;
         }
         catch (OperationCanceledException)
@@ -459,7 +474,7 @@ public partial class FileBrowserPage : ContentPage
         }
         catch (Exception ex)
         {
-            await Banner.ShowAsync("下载失败：" + ex.Message, error: true, durationMs: 1800);
+            await Banner.ShowAsync(L10n.Instance["download_fail"] + ex.Message, error: true, durationMs: 1800);
             return false;
         }
         finally

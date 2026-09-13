@@ -36,6 +36,9 @@ public partial class ConnectPage : ContentPage
         // 主题按钮图标：当前暗色显示 🌙，亮色显示 ☀️
         ThemeBtn.Text = Application.Current?.UserAppTheme == AppTheme.Light ? "☀️" : "🌙";
 
+        // 语言按钮：显示当前语言（中文“中” / 英文“EN”）
+        LangBtn.Text = L10n.Instance.IsEnglish ? L10n.Instance["lang_en"] : L10n.Instance["lang_zh"];
+
         // 退出到主界面默认断开（从文件浏览器返回时）
         if (SmbSession.Instance.IsConnected)
             SmbSession.Instance.Disconnect();
@@ -49,29 +52,20 @@ public partial class ConnectPage : ContentPage
         ThemeBtn.Text = next == AppTheme.Light ? "☀️" : "🌙";
     }
 
+    // ---------- 语言切换 ----------
+
+    private void OnLangToggleClicked(object? sender, EventArgs e)
+    {
+        L10n.Instance.SetLanguage(!L10n.Instance.IsEnglish);
+        LangBtn.Text = L10n.Instance.IsEnglish ? L10n.Instance["lang_en"] : L10n.Instance["lang_zh"];
+    }
+
     private void OnRememberLabelTapped(object? sender, TappedEventArgs e)
     {
         RememberCheck.IsChecked = !RememberCheck.IsChecked;
     }
 
     // ---------- 连接注意事项浮层 ----------
-
-    private const string NotesText =
-        "【连接前】\n" +
-        "• 服务器地址：填 NAS / 电脑的局域网 IP，例如 192.168.1.100\n" +
-        "• 可带端口或共享名：IP:4450 或 IP/WD_DATA\n" +
-        "• 共享名可留空自动检测；若服务器不支持枚举，建议手动填写\n" +
-        "• 用户名 / 密码：NAS 的 SMB 账号，留空表示匿名访问\n" +
-        "• 手机与服务器需在同一局域网，且服务器已开启 SMB（445 端口）\n" +
-        "• 连不上时：核对 IP、确认 445 开放、检查账号共享权限\n" +
-        "• 老设备服务器可能仅支持 SMB1，应用会自动回退尝试\n\n" +
-        "【连接后】\n" +
-        "• 点文件夹进入，点文件预览（文本 / 图片）\n" +
-        "• 视频、音频会自动调起系统播放器 / 打开方式\n" +
-        "• 点文件右侧「⬇ 下载」单个下载；顶栏「批量」可多选批量下载\n" +
-        "• 下载完成顶部横幅提示，文件保存到手机「下载」目录\n" +
-        "• 顶栏「搜索」按文件名过滤当前目录\n" +
-        "• 返回主界面会自动断开连接";
 
     private bool _notesVisible;
 
@@ -81,7 +75,7 @@ public partial class ConnectPage : ContentPage
             return;
         _notesVisible = true;
 
-        NotesLabel.Text = NotesText;
+        NotesLabel.Text = L10n.Instance["notes_text"];
         NotesScrim.IsVisible = true;
         NotesCard.IsVisible = true;
         NotesScrim.Opacity = 0;
@@ -118,7 +112,7 @@ public partial class ConnectPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(hostInput))
         {
-            ShowError("请输入服务器 IP 或主机名");
+            ShowError(L10n.Instance["err_host_empty"]);
             return;
         }
 
@@ -144,7 +138,7 @@ public partial class ConnectPage : ContentPage
             }
             else
             {
-                ShowError("端口格式不正确，示例：192.168.1.100:4450");
+                ShowError(L10n.Instance["err_port"]);
                 return;
             }
         }
@@ -166,7 +160,7 @@ public partial class ConnectPage : ContentPage
             var result = await Task.Run(() => SmbSession.Instance.Connect(host, user, pass, port));
             if (!result.ok)
             {
-                ShowError(result.message ?? "连接失败");
+                ShowError(result.message ?? L10n.Instance["err_connect"]);
                 return;
             }
 
@@ -176,7 +170,7 @@ public partial class ConnectPage : ContentPage
                 var openResult = await Task.Run(() => SmbSession.Instance.OpenShare(share));
                 if (!openResult.ok)
                 {
-                    ShowError(openResult.message ?? "打开共享失败");
+                    ShowError(openResult.message ?? L10n.Instance["err_open_share"]);
                     SmbSession.Instance.Disconnect();
                     return;
                 }
@@ -190,7 +184,7 @@ public partial class ConnectPage : ContentPage
             var sharesResult = await Task.Run(() => SmbSession.Instance.ListShares());
             if (sharesResult.shares is not { Count: > 0 })
             {
-                ShowError(sharesResult.message ?? "服务器上没有可用的共享");
+                ShowError(sharesResult.message ?? L10n.Instance["err_no_shares"]);
                 SmbSession.Instance.Disconnect();
                 return;
             }
@@ -214,7 +208,7 @@ public partial class ConnectPage : ContentPage
             var open2Result = await Task.Run(() => SmbSession.Instance.OpenShare(pickedShare));
             if (!open2Result.ok)
             {
-                ShowError(open2Result.message ?? "打开共享失败");
+                ShowError(open2Result.message ?? L10n.Instance["err_open_share"]);
                 SmbSession.Instance.Disconnect();
                 return;
             }

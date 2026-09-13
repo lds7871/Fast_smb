@@ -32,7 +32,7 @@ public class SmbSession : IDisposable
         UserName = "";
 
         if (string.IsNullOrWhiteSpace(host))
-            return (false, "请输入服务器 IP 或主机名");
+            return (false, L10n.Instance["err_host_empty"]);
 
         // 优先 SMB2/3
         var smb2 = new Smb2ClientEx();
@@ -50,14 +50,14 @@ public class SmbSession : IDisposable
                     return (true, null);
                 }
                 smb2.Disconnect();
-                return (false, "登录失败：" + DescribeStatus(st));
+                return (false, L10n.Instance["login_fail"] + DescribeStatus(st));
             }
             smb2.Disconnect();
         }
         catch (Exception ex)
         {
             smb2.Disconnect();
-            return (false, "连接出错：" + ex.Message);
+            return (false, L10n.Instance["connect_err"] + ex.Message);
         }
 
         // SMB2 连接失败，回退 SMB1（老设备/NAS）
@@ -76,15 +76,15 @@ public class SmbSession : IDisposable
                     return (true, null);
                 }
                 smb1.Disconnect();
-                return (false, "登录失败（SMB1）：" + DescribeStatus(st));
+                return (false, L10n.Instance["login_fail_smb1"] + DescribeStatus(st));
             }
             smb1.Disconnect();
-            return (false, "无法连接服务器（请检查 IP、网络与端口）");
+            return (false, L10n.Instance["cant_connect"]);
         }
         catch (Exception ex)
         {
             smb1.Disconnect();
-            return (false, "连接出错：" + ex.Message);
+            return (false, L10n.Instance["connect_err"] + ex.Message);
         }
     }
 
@@ -92,11 +92,11 @@ public class SmbSession : IDisposable
     public (List<string>? shares, string? message) ListShares()
     {
         if (_client == null || !_client.IsConnected)
-            return (null, "尚未连接服务器");
+            return (null, L10n.Instance["not_connected_server"]);
 
         var shares = _client.ListShares(out var status);
         if (status != NTStatus.STATUS_SUCCESS)
-            return (null, "枚举共享失败：" + DescribeStatus(status));
+            return (null, L10n.Instance["enum_shares_fail"] + DescribeStatus(status));
 
         var list = shares
             .Where(s => !s.EndsWith("$", StringComparison.OrdinalIgnoreCase))
@@ -108,11 +108,11 @@ public class SmbSession : IDisposable
     public (bool ok, string? message) OpenShare(string share)
     {
         if (_client == null || !_client.IsConnected)
-            return (false, "尚未连接服务器");
+            return (false, L10n.Instance["not_connected_server"]);
 
         var store = _client.TreeConnect(share, out var status);
         if (status != NTStatus.STATUS_SUCCESS)
-            return (false, "打开共享失败：" + DescribeStatus(status));
+            return (false, L10n.Instance["open_share_fail"] + DescribeStatus(status));
 
         _fileStore = store;
         _share = share;
@@ -123,7 +123,7 @@ public class SmbSession : IDisposable
     public (List<SmbEntry>? entries, string? message) ListDirectory(string path)
     {
         if (_fileStore == null)
-            return (null, "尚未打开共享");
+            return (null, L10n.Instance["not_opened_share"]);
 
         string smbPath = ToSmbPath(path);
         object? handle = null;
@@ -131,7 +131,7 @@ public class SmbSession : IDisposable
         {
             var st = CreateFile(out handle, smbPath, isDirectory: true);
             if (st != NTStatus.STATUS_SUCCESS)
-                return (null, "打开目录失败：" + DescribeStatus(st));
+                return (null, L10n.Instance["open_dir_fail"] + DescribeStatus(st));
 
             var list = new List<SmbEntry>();
             while (true)
@@ -178,7 +178,7 @@ public class SmbSession : IDisposable
         string path, Stream output, IProgress<double> progress, CancellationToken ct)
     {
         if (_fileStore == null)
-            return (false, "尚未打开共享");
+            return (false, L10n.Instance["not_opened_share"]);
 
         string smbPath = ToSmbPath(path);
         object? handle = null;
@@ -186,7 +186,7 @@ public class SmbSession : IDisposable
         {
             var st = CreateFile(out handle, smbPath, isDirectory: false);
             if (st != NTStatus.STATUS_SUCCESS)
-                return (false, "打开文件失败：" + DescribeStatus(st));
+                return (false, L10n.Instance["open_file_fail"] + DescribeStatus(st));
 
             long total = 0;
             st = GetFileSize(handle, out total);
@@ -203,7 +203,7 @@ public class SmbSession : IDisposable
                 if (st == NTStatus.STATUS_END_OF_FILE)
                     break;
                 if (st != NTStatus.STATUS_SUCCESS)
-                    return (false, "读取文件失败：" + DescribeStatus(st));
+                    return (false, L10n.Instance["read_file_fail"] + DescribeStatus(st));
                 if (data is null || data.Length == 0)
                     break;
                 await output.WriteAsync(data.AsMemory(0, data.Length), ct);
@@ -215,11 +215,11 @@ public class SmbSession : IDisposable
         }
         catch (OperationCanceledException)
         {
-            return (false, "已取消");
+            return (false, L10n.Instance["cancelled"]);
         }
         catch (Exception ex)
         {
-            return (false, "下载出错：" + ex.Message);
+            return (false, L10n.Instance["download_err"] + ex.Message);
         }
         finally
         {
@@ -235,7 +235,7 @@ public class SmbSession : IDisposable
         string path, int maxBytes, CancellationToken ct)
     {
         if (_fileStore == null)
-            return (false, null, "尚未打开共享");
+            return (false, null, L10n.Instance["not_opened_share"]);
 
         string smbPath = ToSmbPath(path);
         object? handle = null;
@@ -243,7 +243,7 @@ public class SmbSession : IDisposable
         {
             var st = CreateFile(out handle, smbPath, isDirectory: false);
             if (st != NTStatus.STATUS_SUCCESS)
-                return (false, null, "打开文件失败：" + DescribeStatus(st));
+                return (false, null, L10n.Instance["open_file_fail"] + DescribeStatus(st));
 
             using var ms = new MemoryStream();
             long offset = 0;
@@ -255,7 +255,7 @@ public class SmbSession : IDisposable
                 if (st == NTStatus.STATUS_END_OF_FILE || data is null || data.Length == 0)
                     break;
                 if (st != NTStatus.STATUS_SUCCESS)
-                    return (false, null, "读取文件失败：" + DescribeStatus(st));
+                    return (false, null, L10n.Instance["read_file_fail"] + DescribeStatus(st));
                 ms.Write(data, 0, data.Length);
                 offset += data.Length;
             }
@@ -263,11 +263,11 @@ public class SmbSession : IDisposable
         }
         catch (OperationCanceledException)
         {
-            return (false, null, "已取消");
+            return (false, null, L10n.Instance["cancelled"]);
         }
         catch (Exception ex)
         {
-            return (false, null, "读取出错：" + ex.Message);
+            return (false, null, L10n.Instance["read_err"] + ex.Message);
         }
         finally
         {
@@ -397,14 +397,14 @@ public class SmbSession : IDisposable
     private static string DescribeStatus(NTStatus status) => status switch
     {
         NTStatus.STATUS_LOGON_FAILURE or NTStatus.STATUS_WRONG_PASSWORD
-            => "用户名或密码错误",
-        NTStatus.STATUS_INVALID_SMB => "服务器拒绝登录，请检查用户名或密码",
-        NTStatus.STATUS_ACCESS_DENIED => "拒绝访问（无权限）",
+            => L10n.Instance["st_bad_cred"],
+        NTStatus.STATUS_INVALID_SMB => L10n.Instance["st_invalid_smb"],
+        NTStatus.STATUS_ACCESS_DENIED => L10n.Instance["st_denied"],
         NTStatus.STATUS_OBJECT_NAME_NOT_FOUND or NTStatus.STATUS_OBJECT_PATH_NOT_FOUND
-            => "路径不存在",
+            => L10n.Instance["st_no_path"],
         NTStatus.STATUS_BAD_NETWORK_NAME or NTStatus.STATUS_NETWORK_NAME_DELETED
-            => "共享名不存在",
-        NTStatus.STATUS_IO_TIMEOUT => "网络超时",
+            => L10n.Instance["st_no_share"],
+        NTStatus.STATUS_IO_TIMEOUT => L10n.Instance["st_timeout"],
         _ => $"{status}",
     };
 }

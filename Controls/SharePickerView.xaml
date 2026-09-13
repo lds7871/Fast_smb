@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ContentView xmlns:l10n="clr-namespace:Fast_smb.Services" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Fast_smb.Controls.SharePickerView"
              IsVisible="False">
@@ -21,11 +21,11 @@
                 Opacity="0"
                 Scale="0.92">
             <VerticalStackLayout Spacing="10">
-                <Label Text="选择共享"
+                <Label Text="{Binding [share_picker_title], Source={x:Static l10n:L10n.Instance}}"
                        TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="18" FontAttributes="Bold"
                        HorizontalOptions="Center" />
                 <VerticalStackLayout x:Name="ShareList" Spacing="6" />
-                <Button Text="取消"
+                <Button Text="{Binding [share_picker_cancel], Source={x:Static l10n:L10n.Instance}}"
                         Clicked="OnCancelClicked"
                         BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}"
                         HeightRequest="44" CornerRadius="10" FontSize="15" />
