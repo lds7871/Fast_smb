@@ -5,6 +5,13 @@ namespace Fast_smb.Pages;
 
 public partial class FileBrowserPage : ContentPage
 {
+    /// <summary>顶栏布局：true=多行（退出+路径 / 功能按钮两行），false=单行（Shell 导航栏，默认）。</summary>
+    public static bool IsMultiLineToolbar
+    {
+        get => Preferences.Default.Get("toolbar_mode", "single") == "multi";
+        set => Preferences.Default.Set("toolbar_mode", value ? "multi" : "single");
+    }
+
     private static readonly HashSet<string> TextExts = new(StringComparer.OrdinalIgnoreCase)
     {
         ".txt", ".log", ".md", ".json", ".xml", ".csv", ".ini", ".conf", ".cfg",
@@ -35,6 +42,38 @@ public partial class FileBrowserPage : ContentPage
     public FileBrowserPage()
     {
         InitializeComponent();
+
+        // 单行/多行共用同一套自定义顶栏，始终隐藏 Shell 导航栏
+        Shell.SetNavBarIsVisible(this, false);
+        ApplyToolbarLayout();
+    }
+
+    /// <summary>根据顶栏模式设置布局：单行=一行（退出+路径+功能按钮），多行=两行（第一行退出+路径，第二行功能按钮靠右）。</summary>
+    private void ApplyToolbarLayout()
+    {
+        if (IsMultiLineToolbar)
+        {
+            // 多行：两行，功能按钮移到第二行（占满第 1、2 列，靠右）
+            TopToolbar.RowDefinitions.Clear();
+            TopToolbar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            TopToolbar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            FuncBar.SetValue(Grid.RowProperty, 1);
+            FuncBar.SetValue(Grid.ColumnProperty, 1);
+            FuncBar.SetValue(Grid.ColumnSpanProperty, 2);
+            ExitBtn.SetValue(Grid.RowProperty, 0);
+            PathLabel.SetValue(Grid.RowProperty, 0);
+        }
+        else
+        {
+            // 单行：一行，功能按钮与退出/路径同行靠右
+            TopToolbar.RowDefinitions.Clear();
+            TopToolbar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            FuncBar.SetValue(Grid.RowProperty, 0);
+            FuncBar.SetValue(Grid.ColumnProperty, 2);
+            FuncBar.SetValue(Grid.ColumnSpanProperty, 1);
+            ExitBtn.SetValue(Grid.RowProperty, 0);
+            PathLabel.SetValue(Grid.RowProperty, 0);
+        }
     }
 
     protected override async void OnAppearing()
@@ -87,7 +126,17 @@ public partial class FileBrowserPage : ContentPage
     private void UpdateTitle()
     {
         var share = SmbSession.Instance.Share;
-        Title = string.IsNullOrEmpty(_currentPath) ? share : $"{share} / {_currentPath}";
+        var path = string.IsNullOrEmpty(_currentPath) ? share : $"{share} / {_currentPath}";
+        Title = path;
+        // 多行模式：路径显示在第一行靠左的 Label（自动收缩，不被功能按钮覆盖）
+        if (PathLabel != null)
+            PathLabel.Text = path;
+    }
+
+    /// <summary>顶栏的「退出」：返回连接页（会自动断开）。</summary>
+    private async void OnExitTapped(object? sender, TappedEventArgs e)
+    {
+        _ = Shell.Current.GoToAsync("..");
     }
 
     private bool _loading;
@@ -437,6 +486,9 @@ public partial class FileBrowserPage : ContentPage
     {
         if (_busy)
             return false;
+        var ensure = await Task.Run(() => SmbSession.Instance.EnsureConnected());
+        if (!ensure.ok)
+            return false;
         _busy = true;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
@@ -500,6 +552,101 @@ public partial class FileBrowserPage : ContentPage
     }
 
     private async void OnRefreshClicked(object? sender, EventArgs e) => await LoadDirectoryAsync();
+
+    // ---------- 上传 ----------
+
+    private async void OnUploadClicked(object? sender, EventArgs e)
+    {
+        if (_busy)
+            return;
+
+        try
+        {
+            // 系统文件选择器
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = L10n.Instance["toolbar_upload"],
+            });
+#if ANDROID
+            Android.Util.Log.Info("FastSMB", $"Upload: picker returned={result?.FileName ?? "(null)"}");
+#endif
+            if (result == null)
+                return; // 用户取消
+
+            using var input = await result.OpenReadAsync();
+#if ANDROID
+            Android.Util.Log.Info("FastSMB", $"Upload: stream opened, canSeek={input?.CanSeek}");
+#endif
+            if (input == null)
+            {
+                await Banner.ShowAsync(L10n.Instance["upload_fail"] + L10n.Instance["unknown_err"], error: true, durationMs: 2500);
+                return;
+            }
+
+            var remotePath = CombinePath(_currentPath, result.FileName);
+            await UploadOneAsync(result.FileName, remotePath, input);
+        }
+        catch (Exception ex)
+        {
+#if ANDROID
+            Android.Util.Log.Info("FastSMB", $"Upload: exception {ex}");
+#endif
+            await Banner.ShowAsync(L10n.Instance["upload_fail"] + ex.Message, error: true, durationMs: 2500);
+        }
+    }
+
+    /// <summary>执行单个上传（共用进度面板），完成后刷新目录并横幅提示。</summary>
+    private async Task UploadOneAsync(string fileName, string remotePath, Stream input)
+    {
+        // 文件选择器打开期间连接可能被系统回收，先确保连接可用
+        var ensure = await Task.Run(() => SmbSession.Instance.EnsureConnected());
+        if (!ensure.ok)
+        {
+            await Banner.ShowAsync(ensure.message ?? L10n.Instance["unknown_err"], error: true, durationMs: 2500);
+            return;
+        }
+
+        _busy = true;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        SetProgressVisible(true, $"{L10n.Instance["uploading"]} {fileName} …");
+        ProgressBar.Progress = 0;
+
+        var progress = new Progress<double>(p =>
+        {
+            ProgressBar.Progress = p;
+            ProgressLabel.Text = $"{L10n.Instance["uploading"]} {fileName} · {p:P0}";
+        });
+
+        try
+        {
+            var result = await Task.Run(() =>
+                SmbSession.Instance.UploadFileAsync(remotePath, input, progress, token));
+#if ANDROID
+            Android.Util.Log.Info("FastSMB", $"Upload: done ok={result.ok} msg={result.message}");
+#endif
+
+            if (result.ok)
+            {
+                await Banner.ShowAsync($"{L10n.Instance["upload_done"]}{fileName}", durationMs: 1000);
+                await LoadDirectoryAsync(); // 上传后刷新列表
+            }
+            else
+            {
+                await Banner.ShowAsync(result.message ?? L10n.Instance["unknown_err"], error: true, durationMs: 2500);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Banner.ShowAsync(L10n.Instance["upload_fail"] + ex.Message, error: true, durationMs: 2500);
+        }
+        finally
+        {
+            _busy = false;
+            SetProgressVisible(false);
+        }
+    }
 
     private void OnCancelClicked(object? sender, EventArgs e)
     {

@@ -39,9 +39,25 @@ public partial class ConnectPage : ContentPage
         // 语言按钮：显示当前语言（中文“中” / 英文“EN”）
         LangBtn.Text = L10n.Instance.IsEnglish ? L10n.Instance["lang_en"] : L10n.Instance["lang_zh"];
 
+        // 顶栏布局按钮：单行显示 line 图标，多行显示 lines 图标
+        UpdateToolbarModeIcon();
+
         // 退出到主界面默认断开（从文件浏览器返回时）
         if (SmbSession.Instance.IsConnected)
             SmbSession.Instance.Disconnect();
+    }
+
+    // ---------- 顶栏布局切换（单行/多行） ----------
+
+    private void UpdateToolbarModeIcon()
+    {
+        ToolbarModeBtn.Source = FileBrowserPage.IsMultiLineToolbar ? "lines.png" : "line.png";
+    }
+
+    private void OnToolbarModeTapped(object? sender, TappedEventArgs e)
+    {
+        FileBrowserPage.IsMultiLineToolbar = !FileBrowserPage.IsMultiLineToolbar;
+        UpdateToolbarModeIcon();
     }
 
     // ---------- 主题切换 ----------

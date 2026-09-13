@@ -7,18 +7,68 @@
              Title="{Binding [browser_title], Source={x:Static l10n:L10n.Instance}}"
              BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="{Binding [toolbar_up], Source={x:Static l10n:L10n.Instance}}" Clicked="OnUpClicked" />
-        <ToolbarItem Text="{Binding [toolbar_refresh], Source={x:Static l10n:L10n.Instance}}" Clicked="OnRefreshClicked" />
-        <ToolbarItem Text="{Binding [toolbar_search], Source={x:Static l10n:L10n.Instance}}" Clicked="OnSearchClicked" />
-        <ToolbarItem x:Name="BatchItem" Text="{Binding [toolbar_batch], Source={x:Static l10n:L10n.Instance}}" Clicked="OnBatchToggleClicked" />
-    </ContentPage.ToolbarItems>
+    <Grid RowDefinitions="Auto,Auto,*" BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
 
-    <Grid RowDefinitions="Auto,*" BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
+    <!-- 统一顶栏（单行/多行共用同一套控件与样式，仅行数不同）：
+         第一行靠左：退出图标 + 文件路径；功能按钮靠右（单行时与路径同行，多行时在第二行） -->
+        <Grid x:Name="TopToolbar"
+          Grid.Row="0"
+          Padding="4,4"
+          RowDefinitions="Auto"
+          ColumnDefinitions="Auto,*,Auto"
+          ColumnSpacing="4"
+          BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
+        <!-- 退出图标（Image 严格尊重尺寸；外层 Grid 44px 保证点击区域） -->
+        <Grid Grid.Row="0" Grid.Column="0"
+              WidthRequest="44" HeightRequest="44">
+            <Image x:Name="ExitBtn"
+                   Source="exit.png"
+                   WidthRequest="25" HeightRequest="25"
+                   Aspect="AspectFit"
+                   HorizontalOptions="Center" VerticalOptions="Center">
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnExitTapped" />
+                </Image.GestureRecognizers>
+            </Image>
+        </Grid>
+        <Label x:Name="PathLabel"
+               Grid.Row="0" Grid.Column="1"
+               TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
+               FontSize="17"
+               VerticalOptions="Center"
+               LineBreakMode="MiddleTruncation" />
+        <HorizontalStackLayout x:Name="FuncBar"
+                               Grid.Row="0" Grid.Column="2"
+                               HorizontalOptions="End" Spacing="2">
+            <controls:ToolbarButton Text="{Binding [toolbar_up], Source={x:Static l10n:L10n.Instance}}"
+                    Clicked="OnUpClicked"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
+                    FontSize="14" HeightRequest="40" Padding="10,0" />
+            <controls:ToolbarButton Text="{Binding [toolbar_refresh], Source={x:Static l10n:L10n.Instance}}"
+                    Clicked="OnRefreshClicked"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
+                    FontSize="14" HeightRequest="40" Padding="10,0" />
+            <controls:ToolbarButton Text="{Binding [toolbar_upload], Source={x:Static l10n:L10n.Instance}}"
+                    Clicked="OnUploadClicked"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
+                    FontSize="14" HeightRequest="40" Padding="10,0" />
+            <controls:ToolbarButton Text="{Binding [toolbar_search], Source={x:Static l10n:L10n.Instance}}"
+                    Clicked="OnSearchClicked"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
+                    FontSize="14" HeightRequest="40" Padding="10,0" />
+            <controls:ToolbarButton x:Name="MultiBatchBtn" Text="{Binding [toolbar_batch], Source={x:Static l10n:L10n.Instance}}"
+                    Clicked="OnBatchToggleClicked"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
+                    FontSize="14" HeightRequest="40" Padding="10,0" />
+        </HorizontalStackLayout>
+        </Grid>
+
+
+
 
         <!-- 搜索栏（点击顶栏「搜索」弹出） -->
         <Grid x:Name="SearchBar"
-              Grid.Row="0"
+              Grid.Row="1"
               IsVisible="False"
               Padding="14,8"
               ColumnDefinitions="*,Auto"
@@ -42,7 +92,7 @@
         </Grid>
 
         <!-- 内容区（文件列表 + 空提示） -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <CollectionView x:Name="FileList" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -96,7 +146,7 @@
 
         <!-- 下载进度面板（悬浮顶部） -->
         <Grid x:Name="ProgressPanel"
-              Grid.Row="0" Grid.RowSpan="2"
+              Grid.Row="0" Grid.RowSpan="3"
               IsVisible="False"
               Padding="14,10"
               RowDefinitions="Auto,Auto"
@@ -123,7 +173,7 @@
 
         <!-- 底部批量操作面板 -->
         <Border x:Name="BatchPanel"
-                Grid.Row="0" Grid.RowSpan="2"
+                Grid.Row="0" Grid.RowSpan="3"
                 IsVisible="False"
                 BackgroundColor="{AppThemeBinding Dark={StaticResource SurfaceDark}, Light={StaticResource SurfaceLight}}"
                 Stroke="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
@@ -158,7 +208,7 @@
 
         <!-- 目录加载动画（覆盖整个页面，加载期间不显示上一级内容） -->
         <Grid x:Name="LoadingPanel"
-              Grid.Row="0" Grid.RowSpan="2"
+              Grid.Row="0" Grid.RowSpan="3"
               IsVisible="False"
               BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
             <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
@@ -173,7 +223,7 @@
 
         <!-- 顶部下滑横幅 -->
         <controls:TopBannerView x:Name="Banner"
-                                Grid.Row="0" Grid.RowSpan="2"
+                                Grid.Row="0" Grid.RowSpan="3"
                                 VerticalOptions="Start"
                                 HorizontalOptions="Fill" />
     </Grid>

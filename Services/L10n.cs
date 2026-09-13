@@ -76,9 +76,10 @@ public class L10n : INotifyPropertyChanged
             "【连接后】\n" +
             "• 点文件夹进入，点文件预览（文本 / 图片）\n" +
             "• 视频、音频会自动调起系统播放器 / 打开方式\n" +
-            "• 点文件右侧「⬇ 下载」单个下载；顶栏「批量」可多选批量下载\n" +
+            "• 点文件右侧「⬇ 下载」单个下载；顶栏「上传」可上传本地文件到当前目录\n" +
+            "• 顶栏「批量」可多选批量下载；「搜索」按文件名过滤当前目录\n" +
             "• 下载完成顶部横幅提示，文件保存到手机「下载」目录\n" +
-            "• 顶栏「搜索」按文件名过滤当前目录\n" +
+            "• 顶栏布局可切换：单行（路径与按钮同行）或多行（路径一行、按钮一行）\n" +
             "• 返回主界面会自动断开连接",
         ["err_host_empty"] = "请输入服务器 IP 或主机名",
         ["err_port"] = "端口格式不正确，示例：192.168.1.100:4450",
@@ -92,8 +93,13 @@ public class L10n : INotifyPropertyChanged
         ["toolbar_up"] = "上级",
         ["toolbar_refresh"] = "刷新",
         ["toolbar_search"] = "搜索",
+        ["toolbar_upload"] = "上传",
         ["toolbar_batch"] = "批量",
         ["toolbar_done"] = "完成",
+        ["toolbar_mode"] = "顶栏布局",
+        ["toolbar_mode_single"] = "单行",
+        ["toolbar_mode_multi"] = "多行",
+        ["toolbar_exit"] = "退出",
         ["search_placeholder"] = "搜索当前目录文件名…",
         ["cancel"] = "取消",
         ["dir_empty"] = "此目录为空",
@@ -116,6 +122,10 @@ public class L10n : INotifyPropertyChanged
         ["load_fail"] = "加载失败：",
         ["download_fail"] = "下载失败：",
         ["download_failed"] = "下载失败",
+        ["uploading"] = "正在上传",
+        ["upload_done"] = "✓ 上传完成：",
+        ["upload_fail"] = "上传失败：",
+        ["upload_ok"] = "上传完成",
         ["download_done"] = "✓ 下载完成：",
         ["downloaded"] = "下载完成",
         ["select_first"] = "请先选择要下载的文件",
@@ -182,9 +192,10 @@ public class L10n : INotifyPropertyChanged
             "[After connecting]\n" +
             "• Tap a folder to enter, tap a file to preview (text / image)\n" +
             "• Video and audio open with the system player / picker\n" +
-            "• Tap the ⬇ button for a single download; use Batch mode for multiple files\n" +
+            "• Tap the ⬇ button for a single download; use Upload on the toolbar to send files to the current folder\n" +
+            "• Use Batch mode for multiple downloads; use Search to filter file names\n" +
             "• A top banner shows download results; files are saved to the Downloads folder\n" +
-            "• Use Search on the toolbar to filter file names\n" +
+            "• The toolbar layout can switch between single-line and two-line modes\n" +
             "• Returning to the main page disconnects automatically",
         ["err_host_empty"] = "Please enter the server IP or hostname",
         ["err_port"] = "Invalid port format, e.g. 192.168.1.100:4450",
@@ -198,8 +209,13 @@ public class L10n : INotifyPropertyChanged
         ["toolbar_up"] = "Up",
         ["toolbar_refresh"] = "Refresh",
         ["toolbar_search"] = "Search",
+        ["toolbar_upload"] = "Upload",
         ["toolbar_batch"] = "Batch",
         ["toolbar_done"] = "Done",
+        ["toolbar_mode"] = "Toolbar layout",
+        ["toolbar_mode_single"] = "Single line",
+        ["toolbar_mode_multi"] = "Multi line",
+        ["toolbar_exit"] = "Exit",
         ["search_placeholder"] = "Search file names in this folder…",
         ["cancel"] = "Cancel",
         ["dir_empty"] = "This folder is empty",
@@ -222,6 +238,10 @@ public class L10n : INotifyPropertyChanged
         ["load_fail"] = "Load failed: ",
         ["download_fail"] = "Download failed: ",
         ["download_failed"] = "Download failed",
+        ["uploading"] = "Uploading",
+        ["upload_done"] = "✓ Uploaded: ",
+        ["upload_fail"] = "Upload failed: ",
+        ["upload_ok"] = "Upload complete",
         ["download_done"] = "✓ Downloaded: ",
         ["downloaded"] = "Downloaded",
         ["select_first"] = "Please select files to download first",

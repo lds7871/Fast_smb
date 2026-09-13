@@ -14,6 +14,8 @@ public class SmbSession : IDisposable
     private ISMBClient? _client;
     private object? _fileStore; // SMB2FileStore 或 SMB1FileStore
     private string _share = "";
+    private string _password = "";
+    private int _port = 445;
 
     public string Host { get; private set; } = "";
     public string UserName { get; private set; } = "";
@@ -23,6 +25,31 @@ public class SmbSession : IDisposable
     public bool IsConnected => _client is { IsConnected: true } && _fileStore != null;
 
     private SmbSession() { }
+
+    /// <summary>确保连接可用；若已断开则用上次的信息自动重连（上传/下载前调用）。</summary>
+    public (bool ok, string? message) EnsureConnected()
+    {
+#if ANDROID
+        Android.Util.Log.Info("FastSMB", $"Ensure: IsConnected={IsConnected} Host={Host} Share={_share}");
+#endif
+        if (IsConnected)
+            return (true, null);
+        if (string.IsNullOrEmpty(Host) || string.IsNullOrEmpty(_share))
+            return (false, L10n.Instance["not_connected_server"]);
+
+        var share = _share; // Connect 内部会 Disconnect 清空 _share，先保存
+        var c = Connect(Host, UserName, _password, _port);
+#if ANDROID
+        Android.Util.Log.Info("FastSMB", $"Ensure: reconnect ok={c.ok} msg={c.message}");
+#endif
+        if (!c.ok)
+            return c;
+        var o = OpenShare(share);
+#if ANDROID
+        Android.Util.Log.Info("FastSMB", $"Ensure: openshare ok={o.ok} msg={o.message}");
+#endif
+        return o.ok ? (true, null) : (false, o.message);
+    }
 
     /// <summary>连接服务器并登录（登录成功即视为连接建立，共享在打开共享时选定）。</summary>
     public (bool ok, string? message) Connect(string host, string username, string password, int port = 445)
@@ -47,6 +74,8 @@ public class SmbSession : IDisposable
                     IsSMB1 = false;
                     Host = host;
                     UserName = username;
+                    _password = password;
+                    _port = port;
                     return (true, null);
                 }
                 smb2.Disconnect();
@@ -73,6 +102,8 @@ public class SmbSession : IDisposable
                     IsSMB1 = true;
                     Host = host;
                     UserName = username;
+                    _password = password;
+                    _port = port;
                     return (true, null);
                 }
                 smb1.Disconnect();
@@ -229,6 +260,55 @@ public class SmbSession : IDisposable
     }
 
     /// <summary>
+    /// 上传文件到共享（path 用 "/" 分隔的相对路径，目标为当前目录 + fileName）。
+    /// 从输入流循环读取并写入 SMB，返回是否成功。
+    /// </summary>
+    public async Task<(bool ok, string? message)> UploadFileAsync(
+        string remotePath, Stream input, IProgress<double> progress, CancellationToken ct)
+    {
+        if (_fileStore == null)
+            return (false, L10n.Instance["not_opened_share"]);
+
+        string smbPath = ToSmbPath(remotePath);
+        object? handle = null;
+        try
+        {
+            var st = CreateFileWrite(out handle, smbPath);
+            if (st != NTStatus.STATUS_SUCCESS)
+                return (false, L10n.Instance["open_file_fail"] + DescribeStatus(st));
+
+            const int chunk = 64 * 1024;
+            long total = input.Length > 0 ? input.Length : -1;
+            long offset = 0;
+            var buffer = new byte[chunk];
+            int read;
+            while ((read = await input.ReadAsync(buffer.AsMemory(0, chunk), ct)) > 0)
+            {
+                st = WriteFile(handle, offset, buffer, read);
+                if (st != NTStatus.STATUS_SUCCESS)
+                    return (false, L10n.Instance["upload_fail"] + DescribeStatus(st));
+                offset += read;
+                if (total > 0)
+                    progress?.Report(offset / (double)total);
+            }
+            return (true, null);
+        }
+        catch (OperationCanceledException)
+        {
+            return (false, L10n.Instance["cancelled"]);
+        }
+        catch (Exception ex)
+        {
+            return (false, L10n.Instance["upload_fail"] + ex.Message);
+        }
+        finally
+        {
+            if (handle != null)
+                CloseFile(handle);
+        }
+    }
+
+    /// <summary>
     /// 读取文件前 maxBytes 字节到内存（用于预览），返回字节数组。
     /// </summary>
     public async Task<(bool ok, byte[]? data, string? message)> ReadBytesAsync(
@@ -329,6 +409,54 @@ public class SmbSession : IDisposable
                 CreateDisposition.FILE_OPEN,
                 isDirectory ? CreateOptions.FILE_DIRECTORY_FILE : CreateOptions.FILE_NON_DIRECTORY_FILE,
                 null);
+            return st;
+        }
+        return NTStatus.STATUS_INVALID_HANDLE;
+    }
+
+    /// <summary>以可写方式创建/覆盖文件（上传用）。</summary>
+    private NTStatus CreateFileWrite(out object handle, string smbPath)
+    {
+        handle = null!;
+        if (_fileStore is SMB2FileStore s2)
+        {
+            FileStatus fs;
+            var st = s2.CreateFile(out handle, out fs, smbPath,
+                AccessMask.GENERIC_WRITE,
+                SMBLibrary.FileAttributes.Normal,
+                ShareAccess.Read | ShareAccess.Write,
+                CreateDisposition.FILE_OVERWRITE_IF,
+                CreateOptions.FILE_NON_DIRECTORY_FILE,
+                null);
+            return st;
+        }
+        if (_fileStore is SMB1FileStore s1)
+        {
+            FileStatus fs;
+            var st = s1.CreateFile(out handle, out fs, smbPath,
+                AccessMask.GENERIC_WRITE,
+                SMBLibrary.FileAttributes.Normal,
+                ShareAccess.Read | ShareAccess.Write,
+                CreateDisposition.FILE_OVERWRITE_IF,
+                CreateOptions.FILE_NON_DIRECTORY_FILE,
+                null);
+            return st;
+        }
+        return NTStatus.STATUS_INVALID_HANDLE;
+    }
+
+    private NTStatus WriteFile(object handle, long offset, byte[] data, int length)
+    {
+        if (_fileStore is SMB2FileStore s2)
+        {
+            int written;
+            var st = s2.WriteFile(out written, handle, offset, data.AsSpan(0, length).ToArray());
+            return st;
+        }
+        if (_fileStore is SMB1FileStore s1)
+        {
+            int written;
+            var st = s1.WriteFile(out written, handle, offset, data.AsSpan(0, length).ToArray());
             return st;
         }
         return NTStatus.STATUS_INVALID_HANDLE;
