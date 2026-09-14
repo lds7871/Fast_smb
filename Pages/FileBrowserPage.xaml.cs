@@ -35,6 +35,7 @@ public partial class FileBrowserPage : ContentPage
     private bool _busy;
     private CancellationTokenSource? _cts;
     private bool _isBatchMode;
+    private bool _isDeleteMode;
     private List<SmbEntry> _currentEntries = new();
     private List<SmbEntry> _displayedEntries = new();
     private bool _batchAbort;
@@ -111,6 +112,15 @@ public partial class FileBrowserPage : ContentPage
             _cts?.Cancel();
             return true;
         }
+        // 删除/批量选择模式下按返回：先退出选择模式，而不是返回上一级目录
+        if (_isDeleteMode || _isBatchMode)
+        {
+            if (_isDeleteMode)
+                SetDeleteMode(false);
+            else
+                SetBatchMode(false);
+            return true;
+        }
         if (_pathStack.Count > 0)
         {
             _currentPath = _pathStack[^1];
@@ -160,6 +170,7 @@ public partial class FileBrowserPage : ContentPage
             {
                 _currentEntries = result.entries;
                 ApplyBatchModeToEntries();
+                ApplyDeleteModeToEntries();
                 ApplySearch();
             }
             else
@@ -231,10 +242,10 @@ public partial class FileBrowserPage : ContentPage
         }
         FileList.ItemsSource = _displayedEntries;
         EmptyLabel.IsVisible = _displayedEntries.Count == 0;
-        UpdateBatchCount();
+        UpdateSelectionCounts();
     }
 
-    // ---------- 批量模式 ----------
+    // ---------- 批量模式 / 删除模式（两套互斥的选择模式，共用勾选 UI） ----------
 
     private void ApplyBatchModeToEntries()
     {
@@ -242,8 +253,16 @@ public partial class FileBrowserPage : ContentPage
             e.IsBatchMode = _isBatchMode;
     }
 
+    private void ApplyDeleteModeToEntries()
+    {
+        foreach (var e in _currentEntries)
+            e.IsDeleteMode = _isDeleteMode;
+    }
+
     private void SetBatchMode(bool on)
     {
+        if (on && _isDeleteMode)
+            SetDeleteMode(false); // 两种选择模式互斥
         _isBatchMode = on;
         BatchPanel.IsVisible = on;
         ApplyBatchModeToEntries();
@@ -252,43 +271,70 @@ public partial class FileBrowserPage : ContentPage
             foreach (var e in _currentEntries)
                 e.IsSelected = false;
         }
-        UpdateBatchCount();
+        UpdateSelectionCounts();
     }
 
-    private void UpdateBatchCount()
+    private void SetDeleteMode(bool on)
     {
-        if (BatchDownloadBtn == null) return;
+        if (on && _isBatchMode)
+            SetBatchMode(false); // 两种选择模式互斥
+        _isDeleteMode = on;
+        DeletePanel.IsVisible = on;
+        ApplyDeleteModeToEntries();
+        if (!on)
+        {
+            foreach (var e in _currentEntries)
+                e.IsSelected = false;
+        }
+        UpdateSelectionCounts();
+    }
+
+    /// <summary>刷新两个选择面板的计数（批量：下载所选 N；删除：删除所选 N）。</summary>
+    private void UpdateSelectionCounts()
+    {
         int n = _displayedEntries.Count(e => e.IsSelected);
-        BatchDownloadBtn.Text = n > 0 ? $"{L10n.Instance["download_selected"]} ({n})" : $"{L10n.Instance["download_selected"]} (0)";
-        BatchDownloadBtn.IsEnabled = n > 0;
+        if (BatchDownloadBtn != null)
+        {
+            BatchDownloadBtn.Text = n > 0 ? $"{L10n.Instance["download_selected"]} ({n})" : $"{L10n.Instance["download_selected"]} (0)";
+            BatchDownloadBtn.IsEnabled = n > 0;
+        }
+        if (DeleteSelectedBtn != null)
+        {
+            DeleteSelectedBtn.Text = n > 0 ? $"{L10n.Instance["delete_selected"]} ({n})" : $"{L10n.Instance["delete_selected"]} (0)";
+            DeleteSelectedBtn.IsEnabled = n > 0;
+        }
     }
 
     private void OnBatchToggleClicked(object? sender, EventArgs e) => SetBatchMode(!_isBatchMode);
 
+    private void OnDeleteToggleClicked(object? sender, EventArgs e) => SetDeleteMode(!_isDeleteMode);
+
     private void OnSelectAll(object? sender, EventArgs e)
     {
         foreach (var entry in _displayedEntries)
-            if (!entry.IsDirectory)
+            if (_isDeleteMode || !entry.IsDirectory) // 删除模式：文件+文件夹；批量模式：仅文件
                 entry.IsSelected = true;
-        UpdateBatchCount();
+        UpdateSelectionCounts();
     }
 
     private void OnInvertSelection(object? sender, EventArgs e)
     {
         foreach (var entry in _displayedEntries)
-            if (!entry.IsDirectory)
+            if (_isDeleteMode || !entry.IsDirectory)
                 entry.IsSelected = !entry.IsSelected;
-        UpdateBatchCount();
+        UpdateSelectionCounts();
     }
 
     private void OnSelectNone(object? sender, EventArgs e)
     {
         foreach (var entry in _displayedEntries)
             entry.IsSelected = false;
-        UpdateBatchCount();
+        UpdateSelectionCounts();
     }
 
     private void OnCancelBatch(object? sender, EventArgs e) => SetBatchMode(false);
+
+    private void OnCancelDelete(object? sender, EventArgs e) => SetDeleteMode(false);
 
     private async void OnBatchDownloadClicked(object? sender, EventArgs e)
     {
@@ -321,6 +367,65 @@ public partial class FileBrowserPage : ContentPage
         SetProgressVisible(false);
     }
 
+    /// <summary>删除所选（文件和文件夹都支持）。确认后逐个删除，完成后刷新目录。</summary>
+    private async void OnDeleteSelectedClicked(object? sender, EventArgs e)
+    {
+        if (_busy)
+            return;
+        var targets = _displayedEntries.Where(x => x.IsSelected).ToList();
+        if (targets.Count == 0)
+        {
+            await Banner.ShowAsync(L10n.Instance["select_delete_first"], durationMs: 1500);
+            return;
+        }
+
+        bool confirm = await DisplayAlertAsync(
+            L10n.Instance["delete_confirm_title"],
+            string.Format(L10n.Instance["delete_confirm_msg"], targets.Count),
+            L10n.Instance["toolbar_delete"],
+            L10n.Instance["cancel"]);
+        if (!confirm)
+            return;
+
+        _busy = true;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        int success = 0;
+        try
+        {
+            foreach (var entry in targets)
+            {
+                token.ThrowIfCancellationRequested();
+                SetProgressVisible(true, $"{L10n.Instance["deleting"]} {entry.Name} …");
+                var remotePath = CombinePath(_currentPath, entry.Name);
+                var result = await Task.Run(() => SmbSession.Instance.DeleteEntry(remotePath, entry.IsDirectory));
+                if (result.ok)
+                    success++;
+            }
+            await Banner.ShowAsync(
+                $"{L10n.Instance["delete_done"]}{success}/{targets.Count}",
+                error: success < targets.Count,
+                durationMs: 2200);
+        }
+        catch (OperationCanceledException)
+        {
+            await Banner.ShowAsync($"{L10n.Instance["cancelled"]} {success}/{targets.Count}", error: true, durationMs: 1800);
+        }
+        catch (Exception ex)
+        {
+            await Banner.ShowAsync(L10n.Instance["delete_fail"] + ex.Message, error: true, durationMs: 2500);
+        }
+        finally
+        {
+            _busy = false;
+            SetProgressVisible(false);
+        }
+
+        // 删除操作结束（含取消/部分失败）后直接退出删除模式，不再停留在持续勾选/删除状态
+        SetDeleteMode(false);
+        await LoadDirectoryAsync(); // 删除后刷新目录
+    }
+
     // ---------- 行点击：文件夹进入 / 文件预览 ----------
 
     private async void OnEntryTapped(object? sender, TappedEventArgs e)
@@ -330,7 +435,13 @@ public partial class FileBrowserPage : ContentPage
         if (_busy)
             return;
 
-        if (entry.IsDirectory)
+        if (_isDeleteMode)
+        {
+            // 删除模式：点条目切换勾选（文件和文件夹都可以选）
+            entry.IsSelected = !entry.IsSelected;
+            UpdateSelectionCounts();
+        }
+        else if (entry.IsDirectory)
         {
             _pathStack.Add(_currentPath);
             _currentPath = CombinePath(_currentPath, entry.Name);
@@ -342,7 +453,7 @@ public partial class FileBrowserPage : ContentPage
         {
             // 批量模式：点文件切换勾选
             entry.IsSelected = !entry.IsSelected;
-            UpdateBatchCount();
+            UpdateSelectionCounts();
         }
         else
         {
@@ -355,7 +466,7 @@ public partial class FileBrowserPage : ContentPage
         if (sender is not BindableObject bo || bo.BindingContext is not SmbEntry entry)
             return;
         entry.IsSelected = e.Value;
-        UpdateBatchCount();
+        UpdateSelectionCounts();
     }
 
     // ---------- 下载按钮（仅这里触发下载） ----------

@@ -33,14 +33,34 @@ public class SmbEntry : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(ShowDownloadButton));
             OnPropertyChanged(nameof(ShowCheckbox));
+            OnPropertyChanged(nameof(ShowArrow));
         }
     }
 
-    /// <summary>非批量模式且为文件时显示「⬇ 下载」按钮。</summary>
-    public bool ShowDownloadButton => ShowDownload && !IsBatchMode;
+    /// <summary>是否处于删除选择模式（由页面切换时设置，与批量模式互斥）。</summary>
+    private bool _isDeleteMode;
+    public bool IsDeleteMode
+    {
+        get => _isDeleteMode;
+        set
+        {
+            if (_isDeleteMode == value) return;
+            _isDeleteMode = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowDownloadButton));
+            OnPropertyChanged(nameof(ShowCheckbox));
+            OnPropertyChanged(nameof(ShowArrow));
+        }
+    }
 
-    /// <summary>批量模式且为文件时显示勾选框。</summary>
-    public bool ShowCheckbox => ShowDownload && IsBatchMode;
+    /// <summary>非批量/删除模式且为文件时显示「⬇ 下载」按钮。</summary>
+    public bool ShowDownloadButton => ShowDownload && !IsBatchMode && !IsDeleteMode;
+
+    /// <summary>选择模式下显示勾选框：批量模式仅文件，删除模式文件+文件夹。</summary>
+    public bool ShowCheckbox => IsBatchMode ? ShowDownload : IsDeleteMode;
+
+    /// <summary>文件夹进入箭头（删除模式下被勾选框替代）。</summary>
+    public bool ShowArrow => IsDirectory && !IsDeleteMode;
 
     /// <summary>批量模式下是否被选中。</summary>
     private bool _isSelected;

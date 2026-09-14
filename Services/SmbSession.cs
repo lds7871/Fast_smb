@@ -382,6 +382,45 @@ public class SmbSession : IDisposable
         }
     }
 
+    /// <summary>
+    /// 删除共享内的文件或空文件夹（path 用 "/" 分隔的相对路径）。
+    /// 用 DELETE 访问权限 + FILE_DELETE_ON_CLOSE 打开后关闭句柄触发删除，
+    /// 再验证条目是否已消失（关闭时删除失败可能被静默忽略，需显式确认）。
+    /// </summary>
+    public (bool ok, string? message) DeleteEntry(string path, bool isDirectory)
+    {
+        var ensure = EnsureConnected();
+        if (!ensure.ok)
+            return (false, ensure.message);
+        if (_fileStore == null)
+            return (false, L10n.Instance["not_opened_share"]);
+
+        string smbPath = ToSmbPath(path);
+        object? handle = null;
+        try
+        {
+            var st = CreateFileDelete(out handle, smbPath, isDirectory);
+            if (st != NTStatus.STATUS_SUCCESS)
+                return (false, L10n.Instance["delete_fail"] + DescribeStatus(st));
+        }
+        finally
+        {
+            if (handle != null)
+                CloseFile(handle); // FILE_DELETE_ON_CLOSE：关闭句柄时才真正删除
+        }
+
+        // 验证删除结果：条目还在说明删除失败（如目录非空 / 文件被占用）
+        var check = CreateFile(out handle, smbPath, isDirectory);
+        if (handle != null)
+            CloseFile(handle);
+        if (check is NTStatus.STATUS_OBJECT_NAME_NOT_FOUND or NTStatus.STATUS_OBJECT_PATH_NOT_FOUND)
+            return (true, null);
+        return (false, L10n.Instance["delete_fail"]
+            + (check == NTStatus.STATUS_SUCCESS
+                ? (isDirectory ? L10n.Instance["delete_not_empty"] : L10n.Instance["delete_still_exists"])
+                : DescribeStatus(check)));
+    }
+
     public void Disconnect()
     {
         try
@@ -466,6 +505,45 @@ public class SmbSession : IDisposable
                 ShareAccess.Read | ShareAccess.Write,
                 CreateDisposition.FILE_OVERWRITE_IF,
                 CreateOptions.FILE_NON_DIRECTORY_FILE,
+                null);
+            return st;
+        }
+        return NTStatus.STATUS_INVALID_HANDLE;
+    }
+
+    /// <summary>
+    /// 以删除权限打开并打上“关闭时删除”标记（删除用）。
+    /// 用标准 DELETE 访问权限位 (0x00010000) —— 不能用 GENERIC_ALL：
+    /// Samba 对 GENERIC_ALL + FILE_DELETE_ON_CLOSE 会返回 STATUS_INVALID_PARAMETER。
+    /// FILE_DELETE_ON_CLOSE 在关闭句柄时删除条目（空目录也可删；非空目录删除会被静默忽略，
+    /// 由调用方的验证步骤判定失败）。
+    /// </summary>
+    private NTStatus CreateFileDelete(out object handle, string smbPath, bool isDirectory)
+    {
+        handle = null!;
+        var options = CreateOptions.FILE_DELETE_ON_CLOSE
+                    | (isDirectory ? CreateOptions.FILE_DIRECTORY_FILE : CreateOptions.FILE_NON_DIRECTORY_FILE);
+        if (_fileStore is SMB2FileStore s2)
+        {
+            FileStatus fs;
+            var st = s2.CreateFile(out handle, out fs, smbPath,
+                (AccessMask)0x00010000, // DELETE
+                isDirectory ? SMBLibrary.FileAttributes.Directory : SMBLibrary.FileAttributes.Normal,
+                ShareAccess.Read | ShareAccess.Write,
+                CreateDisposition.FILE_OPEN,
+                options,
+                null);
+            return st;
+        }
+        if (_fileStore is SMB1FileStore s1)
+        {
+            FileStatus fs;
+            var st = s1.CreateFile(out handle, out fs, smbPath,
+                (AccessMask)0x00010000, // DELETE
+                isDirectory ? SMBLibrary.FileAttributes.Directory : SMBLibrary.FileAttributes.Normal,
+                ShareAccess.Read | ShareAccess.Write,
+                CreateDisposition.FILE_OPEN,
+                options,
                 null);
             return st;
         }

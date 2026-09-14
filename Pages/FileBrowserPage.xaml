@@ -48,6 +48,10 @@
                     Clicked="OnRefreshClicked"
                     TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
                     FontSize="14" HeightRequest="40" Padding="10,0" />
+            <controls:ToolbarButton Text="{Binding [toolbar_delete], Source={x:Static l10n:L10n.Instance}}"
+                    Clicked="OnDeleteToggleClicked"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
+                    FontSize="14" HeightRequest="40" Padding="10,0" />
             <controls:ToolbarButton Text="{Binding [toolbar_upload], Source={x:Static l10n:L10n.Instance}}"
                     Clicked="OnUploadClicked"
                     TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
@@ -111,11 +115,11 @@
                                 <Label Text="{Binding DisplayInfo}"
                                        TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}" FontSize="12" />
                             </VerticalStackLayout>
-                            <!-- 文件夹：进入箭头 -->
+                            <!-- 文件夹：进入箭头（删除模式下被勾选框替代） -->
                             <Label Grid.Column="2"
                                    Text="›"
                                    TextColor="{AppThemeBinding Dark={StaticResource LinkDark}, Light={StaticResource LinkLight}}" FontSize="20"
-                                   IsVisible="{Binding IsDirectory}"
+                                   IsVisible="{Binding ShowArrow}"
                                    VerticalOptions="Center" />
                             <!-- 文件：单个下载按钮（非批量模式） -->
                             <Button Grid.Column="2"
@@ -200,6 +204,41 @@
                             BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
                             HeightRequest="42" CornerRadius="9" FontSize="14" />
                     <Button Grid.Column="3" Text="{Binding [cancel_batch], Source={x:Static l10n:L10n.Instance}}" Clicked="OnCancelBatch"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource ErrorDark}, Light={StaticResource ErrorLight}}"
+                            HeightRequest="42" CornerRadius="9" FontSize="14" />
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- 底部删除操作面板（与批量面板同款样式，主按钮用红色警示） -->
+        <Border x:Name="DeletePanel"
+                Grid.Row="0" Grid.RowSpan="3"
+                IsVisible="False"
+                BackgroundColor="{AppThemeBinding Dark={StaticResource SurfaceDark}, Light={StaticResource SurfaceLight}}"
+                Stroke="{AppThemeBinding Dark={StaticResource ErrorDark}, Light={StaticResource ErrorLight}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 14"
+                Padding="12,10"
+                Margin="10,0,10,14"
+                VerticalOptions="End">
+            <VerticalStackLayout Spacing="8">
+                <Button x:Name="DeleteSelectedBtn"
+                        Text="{Binding [delete_selected], Source={x:Static l10n:L10n.Instance}}"
+                        Clicked="OnDeleteSelectedClicked"
+                        BackgroundColor="{AppThemeBinding Dark={StaticResource ErrorDark}, Light={StaticResource ErrorLight}}" TextColor="White"
+                        HeightRequest="48" CornerRadius="10"
+                        FontSize="16" FontAttributes="Bold" />
+                <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                    <Button Text="{Binding [select_all], Source={x:Static l10n:L10n.Instance}}" Clicked="OnSelectAll"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
+                            HeightRequest="42" CornerRadius="9" FontSize="14" />
+                    <Button Grid.Column="1" Text="{Binding [invert], Source={x:Static l10n:L10n.Instance}}" Clicked="OnInvertSelection"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
+                            HeightRequest="42" CornerRadius="9" FontSize="14" />
+                    <Button Grid.Column="2" Text="{Binding [select_none], Source={x:Static l10n:L10n.Instance}}" Clicked="OnSelectNone"
+                            BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}"
+                            HeightRequest="42" CornerRadius="9" FontSize="14" />
+                    <Button Grid.Column="3" Text="{Binding [cancel_delete], Source={x:Static l10n:L10n.Instance}}" Clicked="OnCancelDelete"
                             BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource ErrorDark}, Light={StaticResource ErrorLight}}"
                             HeightRequest="42" CornerRadius="9" FontSize="14" />
                 </Grid>
