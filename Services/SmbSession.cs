@@ -16,6 +16,11 @@ public class SmbSession : IDisposable
     private string _share = "";
     private string _password = "";
     private int _port = 445;
+    // 打开系统应用（文件选择器/视频播放器）会把本程序切到后台，期间 SMB 连接可能被服务器回收。
+    // SMBLibrary 只有等 socket 接收回调处理完断开后才把 IsConnected 置 false，
+    // 在此之前 IsConnected 可能仍为 true（陈旧连接），导致下一次操作抛
+    // “The client is no longer connected”。此标记置位后，下次 EnsureConnected 会强制重建连接。
+    private volatile bool _connectionStale;
 
     public string Host { get; private set; } = "";
     public string UserName { get; private set; } = "";
@@ -26,14 +31,19 @@ public class SmbSession : IDisposable
 
     private SmbSession() { }
 
-    /// <summary>确保连接可用；若已断开则用上次的信息自动重连（上传/下载前调用）。</summary>
+    /// <summary>确保连接可用；若已断开或切过后台则用上次的信息自动重连（任何 SMB 操作前调用）。</summary>
     public (bool ok, string? message) EnsureConnected()
     {
 #if ANDROID
-        Android.Util.Log.Info("FastSMB", $"Ensure: IsConnected={IsConnected} Host={Host} Share={_share}");
+        Android.Util.Log.Info("FastSMB", $"Ensure: IsConnected={IsConnected} stale={_connectionStale} Host={Host} Share={_share}");
 #endif
-        if (IsConnected)
+        if (IsConnected && !_connectionStale)
             return (true, null);
+
+        // 一旦切到过后台，连接可能已被服务器回收（socket 已死但 IsConnected 仍短暂为 true），
+        // 这里无条件重建连接最稳妥，避免后续操作抛 “The client is no longer connected”。
+        _connectionStale = false;
+
         if (string.IsNullOrEmpty(Host) || string.IsNullOrEmpty(_share))
             return (false, L10n.Instance["not_connected_server"]);
 
@@ -51,10 +61,14 @@ public class SmbSession : IDisposable
         return o.ok ? (true, null) : (false, o.message);
     }
 
+    /// <summary>应用切到后台（系统文件选择器/播放器打开）时调用：标记连接可能已失效，下次操作前强制重连。</summary>
+    public void MarkConnectionStale() => _connectionStale = true;
+
     /// <summary>连接服务器并登录（登录成功即视为连接建立，共享在打开共享时选定）。</summary>
     public (bool ok, string? message) Connect(string host, string username, string password, int port = 445)
     {
         Disconnect();
+        _connectionStale = false;
         Host = "";
         UserName = "";
 
@@ -153,6 +167,9 @@ public class SmbSession : IDisposable
     /// <summary>列出共享内某目录（path 用 "/" 分隔，空串表示共享根目录）。</summary>
     public (List<SmbEntry>? entries, string? message) ListDirectory(string path)
     {
+        var ensure = EnsureConnected();
+        if (!ensure.ok)
+            return (null, ensure.message);
         if (_fileStore == null)
             return (null, L10n.Instance["not_opened_share"]);
 
@@ -208,6 +225,9 @@ public class SmbSession : IDisposable
     public async Task<(bool ok, string? message)> DownloadFileAsync(
         string path, Stream output, IProgress<double> progress, CancellationToken ct)
     {
+        var ensure = EnsureConnected();
+        if (!ensure.ok)
+            return (false, ensure.message);
         if (_fileStore == null)
             return (false, L10n.Instance["not_opened_share"]);
 
@@ -266,6 +286,9 @@ public class SmbSession : IDisposable
     public async Task<(bool ok, string? message)> UploadFileAsync(
         string remotePath, Stream input, IProgress<double> progress, CancellationToken ct)
     {
+        var ensure = EnsureConnected();
+        if (!ensure.ok)
+            return (false, ensure.message);
         if (_fileStore == null)
             return (false, L10n.Instance["not_opened_share"]);
 
@@ -314,6 +337,9 @@ public class SmbSession : IDisposable
     public async Task<(bool ok, byte[]? data, string? message)> ReadBytesAsync(
         string path, int maxBytes, CancellationToken ct)
     {
+        var ensure = EnsureConnected();
+        if (!ensure.ok)
+            return (false, null, ensure.message);
         if (_fileStore == null)
             return (false, null, L10n.Instance["not_opened_share"]);
 
@@ -378,6 +404,7 @@ public class SmbSession : IDisposable
         }
         _share = "";
         IsSMB1 = false;
+        _connectionStale = false;
     }
 
     public void Dispose() => Disconnect();

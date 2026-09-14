@@ -80,7 +80,10 @@ public partial class FileBrowserPage : ContentPage
     {
         base.OnAppearing();
 
-        if (!SmbSession.Instance.IsConnected)
+        // 从系统应用（视频播放器/文件选择器）返回时连接可能已被回收：
+        // 先尝试自动重连，只有重连失败才退回连接页（而不是因 IsConnected 短暂为 false 被弹出）。
+        var ensure = await Task.Run(() => SmbSession.Instance.EnsureConnected());
+        if (!ensure.ok)
         {
             await Shell.Current.GoToAsync("..");
             return;
