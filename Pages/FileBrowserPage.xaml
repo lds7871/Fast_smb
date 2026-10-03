@@ -97,7 +97,7 @@
 
         <!-- 内容区（文件列表 + 空提示） -->
         <Grid Grid.Row="2">
-            <CollectionView x:Name="FileList" SelectionMode="None">
+            <CollectionView x:Name="FileList" SelectionMode="None" Scrolled="OnFileListScrolled">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Grid Padding="16,12"

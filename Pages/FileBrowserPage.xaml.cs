@@ -40,6 +40,20 @@ public partial class FileBrowserPage : ContentPage
     private List<SmbEntry> _displayedEntries = new();
     private bool _batchAbort;
 
+    // ---------- 浏览位置记忆（返回上级/刷新/预览返回时回到原来的滚动位置） ----------
+
+    /// <summary>各目录的浏览位置：路径 → 离开时首个可见条目的名称与索引（名称优先，索引兜底）。</summary>
+    private readonly Dictionary<string, (string Name, int Index)> _scrollMemory = new();
+
+    /// <summary>最近一次采集到的滚动位置；Path 标明它属于哪个目录，避免切换目录后张冠李戴。</summary>
+    private (string Path, string Name, int Index)? _scrollCapture;
+
+    /// <summary>是否正在程序性恢复滚动位置（期间不采集，避免把自动滚动当成用户浏览位置）。</summary>
+    private bool _restoringScroll;
+
+    /// <summary>目录刚载入/刚恢复后的布局抖动期内不采集滚动位置。</summary>
+    private DateTime _scrollSettleUntil = DateTime.MinValue;
+
     public FileBrowserPage()
     {
         InitializeComponent();
@@ -123,6 +137,7 @@ public partial class FileBrowserPage : ContentPage
         }
         if (_pathStack.Count > 0)
         {
+            PrepareDirectoryChange();
             _currentPath = _pathStack[^1];
             _pathStack.RemoveAt(_pathStack.Count - 1);
             UpdateTitle();
@@ -160,6 +175,9 @@ public partial class FileBrowserPage : ContentPage
         _loading = true;
         try
         {
+            // 先把当前目录的浏览位置存档，再换内容：这样刷新/上传/删除后也能回到原位置
+            CommitScrollPosition();
+
             // 加载期间显示动画并清空上一级内容
             LoadingPanel.IsVisible = true;
             FileList.ItemsSource = null;
@@ -172,6 +190,7 @@ public partial class FileBrowserPage : ContentPage
                 ApplyBatchModeToEntries();
                 ApplyDeleteModeToEntries();
                 ApplySearch();
+                await RestoreScrollPositionAsync(_currentPath); // 回到该目录上次的浏览位置
             }
             else
             {
@@ -188,6 +207,79 @@ public partial class FileBrowserPage : ContentPage
         {
             LoadingPanel.IsVisible = false;
             _loading = false;
+            // 列表刚换完，Android 侧还可能补发一次「滚到顶部」的布局事件：短暂静默，避免覆盖存档
+            _scrollSettleUntil = DateTime.UtcNow.AddMilliseconds(300);
+        }
+    }
+
+    // ---------- 浏览位置记忆 ----------
+
+    /// <summary>滚动时记下首个可见条目（只在用户浏览期间采集，程序性滚动不算）。</summary>
+    private void OnFileListScrolled(object? sender, ItemsViewScrolledEventArgs e)
+    {
+        if (_loading || _restoringScroll || DateTime.UtcNow < _scrollSettleUntil)
+            return;
+        var index = e.FirstVisibleItemIndex;
+        if (index < 0 || index >= _displayedEntries.Count)
+            return;
+        _scrollCapture = (_currentPath, _displayedEntries[index].Name, index);
+    }
+
+    /// <summary>把最近采集到的位置存档到它所属的目录（换目录/刷新前调用）。</summary>
+    private void CommitScrollPosition()
+    {
+        if (_scrollCapture is { } capture)
+        {
+            _scrollMemory[capture.Path] = (capture.Name, capture.Index);
+#if ANDROID
+            Android.Util.Log.Info("FastSMB", $"ScrollSave: path=\"{capture.Path}\" name=\"{capture.Name}\" index={capture.Index}");
+#endif
+        }
+        _scrollCapture = null;
+    }
+
+    /// <summary>切换目录（进入子目录/返回上级）前调用：先存档当前位置，并屏蔽切换过程中的程序性滚动事件。</summary>
+    private void PrepareDirectoryChange()
+    {
+        CommitScrollPosition();
+        _scrollSettleUntil = DateTime.UtcNow.AddMilliseconds(500);
+    }
+
+    /// <summary>恢复指定目录上次的浏览位置：优先按条目名称定位（目录内容增减后依然准确），否则退回索引。</summary>
+    private async Task RestoreScrollPositionAsync(string path)
+    {
+        if (!_scrollMemory.TryGetValue(path, out var pos) || _displayedEntries.Count == 0)
+            return;
+
+        // 名称优先：刷新后条目顺序/数量可能变化，用名称能精确回到同一个条目
+        var target = _displayedEntries.FirstOrDefault(x => x.Name == pos.Name);
+        if (target == null && pos.Index > 0)
+            target = _displayedEntries[Math.Min(pos.Index, _displayedEntries.Count - 1)];
+        if (target == null || _displayedEntries.IndexOf(target) == 0)
+            return; // 本来就在顶部（或目标已不存在），无需滚动
+
+        var targetIndex = _displayedEntries.IndexOf(target);
+#if ANDROID
+        Android.Util.Log.Info("FastSMB", $"ScrollRestore: path=\"{path}\" target=\"{target.Name}\" index={targetIndex}");
+#endif
+        _restoringScroll = true;
+        try
+        {
+            // 等一帧让新条目完成布局，ScrollTo 才会命中（否则首次调用可能被忽略），再补一次兜底
+            await Task.Delay(40);
+            FileList.ScrollTo(target, position: ScrollToPosition.Start, animate: false);
+            await Task.Delay(70);
+            FileList.ScrollTo(target, position: ScrollToPosition.Start, animate: false);
+        }
+        catch (Exception ex)
+        {
+#if ANDROID
+            Android.Util.Log.Info("FastSMB", $"RestoreScroll: failed {ex.Message}");
+#endif
+        }
+        finally
+        {
+            _restoringScroll = false;
         }
     }
 
@@ -443,6 +535,7 @@ public partial class FileBrowserPage : ContentPage
         }
         else if (entry.IsDirectory)
         {
+            PrepareDirectoryChange();
             _pathStack.Add(_currentPath);
             _currentPath = CombinePath(_currentPath, entry.Name);
             UpdateTitle();
@@ -654,6 +747,7 @@ public partial class FileBrowserPage : ContentPage
     {
         if (_pathStack.Count > 0)
         {
+            PrepareDirectoryChange();
             _currentPath = _pathStack[^1];
             _pathStack.RemoveAt(_pathStack.Count - 1);
             UpdateTitle();
