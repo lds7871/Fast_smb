@@ -75,6 +75,7 @@ public class L10n : INotifyPropertyChanged
             "• 老设备服务器可能仅支持 SMB1，应用会自动回退尝试\n\n" +
             "【连接后】\n" +
             "• 点文件夹进入，点文件预览（文本 / 图片）\n" +
+            "• 图片预览可左右滑动，快速切换同目录下的其他图片\n" +
             "• 视频、音频会自动调起系统播放器 / 打开方式\n" +
             "• 点文件右侧「⬇ 下载」单个下载；顶栏「上传」可上传本地文件到当前目录\n" +
             "• 顶栏「批量」可多选批量下载；「搜索」按文件名过滤当前目录\n" +
@@ -210,6 +211,7 @@ public class L10n : INotifyPropertyChanged
             "• Very old servers may only support SMB1; the app falls back automatically\n\n" +
             "[After connecting]\n" +
             "• Tap a folder to enter, tap a file to preview (text / image)\n" +
+            "• In image preview, swipe left/right to switch between images in the same folder\n" +
             "• Video and audio open with the system player / picker\n" +
             "• Tap the ⬇ button for a single download; use Upload on the toolbar to send files to the current folder\n" +
             "• Use Batch mode for multiple downloads; use Search to filter file names\n" +

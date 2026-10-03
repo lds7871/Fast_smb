@@ -14,10 +14,26 @@
                    LineBreakMode="WordWrap" />
         </ScrollView>
 
+        <!-- 图片预览：左右滑动切换同目录下的其他图片 -->
         <Image x:Name="PreviewImage"
                IsVisible="False"
                Aspect="AspectFit"
-               Margin="10" />
+               Margin="10">
+            <Image.GestureRecognizers>
+                <SwipeGestureRecognizer Direction="Left" Swiped="OnSwipedLeft" />
+                <SwipeGestureRecognizer Direction="Right" Swiped="OnSwipedRight" />
+            </Image.GestureRecognizers>
+        </Image>
+
+        <!-- 图片加载失败提示 -->
+        <Label x:Name="ErrorLabel"
+               IsVisible="False"
+               TextColor="{AppThemeBinding Dark={StaticResource ErrorDark}, Light={StaticResource ErrorLight}}"
+               FontSize="15"
+               Padding="24"
+               HorizontalTextAlignment="Center"
+               HorizontalOptions="Center"
+               VerticalOptions="Center" />
 
         <ActivityIndicator x:Name="Busy"
                            IsRunning="True"

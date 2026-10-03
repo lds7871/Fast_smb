@@ -588,9 +588,9 @@ public partial class FileBrowserPage : ContentPage
         var ext = Path.GetExtension(entry.Name);
         var remotePath = CombinePath(_currentPath, entry.Name);
 
-        if (TextExts.Contains(ext) || ImageExts.Contains(ext))
+        if (TextExts.Contains(ext))
         {
-            int cap = TextExts.Contains(ext) ? 512 * 1024 : 20 * 1024 * 1024;
+            const int cap = 512 * 1024;
             SetProgressVisible(true, $"{L10n.Instance["loading_preview"]} {entry.Name} …");
             _cts = new CancellationTokenSource();
             try
@@ -599,8 +599,7 @@ public partial class FileBrowserPage : ContentPage
                     SmbSession.Instance.ReadBytesAsync(remotePath, cap, _cts.Token));
                 if (result.ok && result.data != null)
                 {
-                    var kind = TextExts.Contains(ext) ? PreviewKind.Text : PreviewKind.Image;
-                    await Navigation.PushAsync(new PreviewPage(entry.Name, kind, result.data));
+                    await Navigation.PushAsync(new PreviewPage(entry.Name, result.data));
                 }
                 else
                 {
@@ -615,6 +614,21 @@ public partial class FileBrowserPage : ContentPage
             {
                 SetProgressVisible(false);
             }
+        }
+        else if (ImageExts.Contains(ext))
+        {
+            // 图片交给预览页自己按需读取：把同目录（当前显示顺序）的图片一起带过去，支持左右滑动切换
+            var images = _displayedEntries
+                .Where(e => !e.IsDirectory && ImageExts.Contains(Path.GetExtension(e.Name)))
+                .Select(e => new PreviewImage(e.Name, CombinePath(_currentPath, e.Name)))
+                .ToList();
+            var start = images.FindIndex(x => x.Name == entry.Name);
+            if (start < 0)
+            {
+                images.Insert(0, new PreviewImage(entry.Name, remotePath)); // 兜底：至少能看当前这张
+                start = 0;
+            }
+            await Navigation.PushAsync(new PreviewPage(images, start));
         }
         else if (VideoExts.Contains(ext))
         {
