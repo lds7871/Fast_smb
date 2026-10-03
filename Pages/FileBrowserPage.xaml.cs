@@ -54,6 +54,9 @@ public partial class FileBrowserPage : ContentPage
     /// <summary>目录刚载入/刚恢复后的布局抖动期内不采集滚动位置。</summary>
     private DateTime _scrollSettleUntil = DateTime.MinValue;
 
+    /// <summary>排序弹窗是否打开（打开时返回键只关弹窗）。</summary>
+    private bool _sortPickerOpen;
+
     public FileBrowserPage()
     {
         InitializeComponent();
@@ -126,6 +129,12 @@ public partial class FileBrowserPage : ContentPage
             _cts?.Cancel();
             return true;
         }
+        // 排序弹窗打开时，返回键先关闭弹窗（而不是返回上一级/退出浏览页）
+        if (_sortPickerOpen)
+        {
+            SortPicker.Close();
+            return true;
+        }
         // 删除/批量选择模式下按返回：先退出选择模式，而不是返回上一级目录
         if (_isDeleteMode || _isBatchMode)
         {
@@ -187,6 +196,7 @@ public partial class FileBrowserPage : ContentPage
             if (result.entries != null)
             {
                 _currentEntries = result.entries;
+                SortSettings.Apply(_currentEntries); // 按当前排序方式（文件夹始终优先）
                 ApplyBatchModeToEntries();
                 ApplyDeleteModeToEntries();
                 ApplySearch();
@@ -761,6 +771,55 @@ public partial class FileBrowserPage : ContentPage
     }
 
     private async void OnRefreshClicked(object? sender, EventArgs e) => await LoadDirectoryAsync();
+
+    // ---------- 排序 ----------
+
+    private async void OnSortClicked(object? sender, EventArgs e)
+    {
+        if (_loading || _busy)
+            return;
+        _sortPickerOpen = true;
+        SortMode? picked;
+        try
+        {
+            picked = await SortPicker.ShowAsync(SortSettings.Current);
+        }
+        finally
+        {
+            _sortPickerOpen = false;
+        }
+        if (picked is not { } mode || mode == SortSettings.Current)
+            return;
+        await ApplySortAsync(mode);
+    }
+
+    /// <summary>切换排序方式：当前目录就地重排（不再请求服务器），并回到列表顶部。</summary>
+    private async Task ApplySortAsync(SortMode mode)
+    {
+        SortSettings.Current = mode;
+        SortSettings.Apply(_currentEntries, mode);
+
+        // 顺序已变：丢掉采集值并静默一段时间，避免列表重建时的程序性滚动被当成浏览位置
+        _scrollCapture = null;
+        _scrollSettleUntil = DateTime.UtcNow.AddMilliseconds(500);
+        FileList.ItemsSource = null; // 先清空，强制列表重建，就地排序才会立即生效
+        ApplySearch();
+
+        try
+        {
+            await Task.Delay(40);
+            if (_displayedEntries.Count > 0)
+                FileList.ScrollTo(0, position: ScrollToPosition.Start, animate: false);
+        }
+        catch (Exception ex)
+        {
+#if ANDROID
+            Android.Util.Log.Info("FastSMB", $"ApplySort: scroll-to-top failed {ex.Message}");
+#endif
+        }
+
+        await Banner.ShowAsync(L10n.Instance["sort_done"] + L10n.Instance[SortSettings.TextKey(mode)], durationMs: 1500);
+    }
 
     // ---------- 上传 ----------
 

@@ -40,6 +40,10 @@
         <HorizontalStackLayout x:Name="FuncBar"
                                Grid.Row="0" Grid.Column="2"
                                HorizontalOptions="End" Spacing="2">
+            <controls:ToolbarButton Text="{Binding [toolbar_sort], Source={x:Static l10n:L10n.Instance}}"
+                    Clicked="OnSortClicked"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
+                    FontSize="14" HeightRequest="40" Padding="10,0" />
             <controls:ToolbarButton Text="{Binding [toolbar_up], Source={x:Static l10n:L10n.Instance}}"
                     Clicked="OnUpClicked"
                     TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}"
@@ -259,6 +263,10 @@
                        FontSize="14" HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Grid>
+
+        <!-- 排序方式选择弹窗 -->
+        <controls:SortPickerView x:Name="SortPicker"
+                                 Grid.Row="0" Grid.RowSpan="3" />
 
         <!-- 顶部下滑横幅 -->
         <controls:TopBannerView x:Name="Banner"

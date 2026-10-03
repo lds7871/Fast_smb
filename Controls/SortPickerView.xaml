@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns:l10n="clr-namespace:Fast_smb.Services" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Fast_smb.Controls.SortPickerView"
+             IsVisible="False">
+
+    <Grid>
+        <!-- 半透明遮罩 -->
+        <BoxView x:Name="Scrim" Color="{AppThemeBinding Dark={StaticResource ScrimDark}, Light={StaticResource ScrimLight}}" Opacity="0" />
+
+        <!-- 紫色边框卡片（与共享选择弹窗同款） -->
+        <Border x:Name="Card"
+                BackgroundColor="{AppThemeBinding Dark={StaticResource SurfaceDark}, Light={StaticResource SurfaceLight}}"
+                Stroke="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 16"
+                Padding="20,18"
+                WidthRequest="340"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Opacity="0"
+                Scale="0.92">
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{Binding [sort_title], Source={x:Static l10n:L10n.Instance}}"
+                       TextColor="{AppThemeBinding Dark={StaticResource TextPrimaryDark}, Light={StaticResource TextPrimaryLight}}" FontSize="18" FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+                <VerticalStackLayout x:Name="ModeList" Spacing="6" />
+                <Button Text="{Binding [cancel], Source={x:Static l10n:L10n.Instance}}"
+                        Clicked="OnCancelClicked"
+                        BackgroundColor="{AppThemeBinding Dark={StaticResource Surface2Dark}, Light={StaticResource Surface2Light}}" TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}"
+                        HeightRequest="44" CornerRadius="10" FontSize="15" />
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+
+</ContentView>
