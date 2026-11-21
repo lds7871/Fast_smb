@@ -165,13 +165,14 @@ public class SmbSession : IDisposable
     }
 
     /// <summary>列出共享内某目录（path 用 "/" 分隔，空串表示共享根目录）。</summary>
-    public (List<SmbEntry>? entries, string? message) ListDirectory(string path)
+    /// <param name="limit">最多返回的条目数（默认不限）。用于大目录增量加载：返回不足 <paramref name="limit"/> 条即表示已到目录末尾。</param>
+    public (List<SmbEntry>? entries, string? message, bool hasMore) ListDirectory(string path, int limit = int.MaxValue)
     {
         var ensure = EnsureConnected();
         if (!ensure.ok)
-            return (null, ensure.message);
+            return (null, ensure.message, false);
         if (_fileStore == null)
-            return (null, L10n.Instance["not_opened_share"]);
+            return (null, L10n.Instance["not_opened_share"], false);
 
         string smbPath = ToSmbPath(path);
         object? handle = null;
@@ -179,7 +180,7 @@ public class SmbSession : IDisposable
         {
             var st = CreateFile(out handle, smbPath, isDirectory: true);
             if (st != NTStatus.STATUS_SUCCESS)
-                return (null, L10n.Instance["open_dir_fail"] + DescribeStatus(st));
+                return (null, L10n.Instance["open_dir_fail"] + DescribeStatus(st), false);
 
             var list = new List<SmbEntry>();
             while (true)
@@ -201,6 +202,9 @@ public class SmbSession : IDisposable
                         LastWriteTime = fdi.LastWriteTime,
                     });
                 }
+                // 达到本次上限即停（增量加载）：服务端可能还有更多条目
+                if (list.Count >= limit)
+                    break;
                 if (st != NTStatus.STATUS_SUCCESS || results.Count == 0)
                     break;
             }
@@ -210,7 +214,7 @@ public class SmbSession : IDisposable
                 int c = b.IsDirectory.CompareTo(a.IsDirectory);
                 return c != 0 ? c : string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
             });
-            return (list, null);
+            return (list, null, list.Count >= limit);
         }
         finally
         {

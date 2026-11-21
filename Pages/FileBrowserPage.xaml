@@ -150,6 +150,13 @@
                    TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}" FontSize="15"
                    HorizontalOptions="Center" VerticalOptions="Center"
                    IsVisible="False" />
+
+            <!-- 增量加载提示（滚动到底部取下一批时短暂显示，初始隐藏） -->
+            <Label x:Name="LoadingMoreLabel"
+                   Text="{Binding [loading_more], Source={x:Static l10n:L10n.Instance}}"
+                   TextColor="{AppThemeBinding Dark={StaticResource TextSecondaryDark}, Light={StaticResource TextSecondaryLight}}" FontSize="14"
+                   HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,12"
+                   IsVisible="False" />
         </Grid>
 
         <!-- 下载进度面板（悬浮顶部） -->

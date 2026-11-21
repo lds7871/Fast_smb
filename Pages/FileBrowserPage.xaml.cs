@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Fast_smb.Models;
 using Fast_smb.Services;
 
@@ -40,6 +41,23 @@ public partial class FileBrowserPage : ContentPage
     private List<SmbEntry> _displayedEntries = new();
     private bool _batchAbort;
 
+    // ---------- 增量加载（大目录分批取，避免一次列取上千个文件导致明显卡顿） ----------
+
+    /// <summary>每批最多加载的条目数（首屏与每次加载更多相同）。</summary>
+    private const int BatchSize = 100;
+
+    /// <summary>当前目录是否还有更多条目未加载。</summary>
+    private bool _hasMore;
+
+    /// <summary>是否正在加载下一批（防止重入）。</summary>
+    private bool _loadingMore;
+
+    /// <summary>
+    /// CollectionView 的稳定数据源。增量追加下一批时只重建此集合内容而不重设 ItemsSource，
+    /// 从而保留滚动位置（配合 <see cref="RestoreScrollPositionAsync"/> 回到原条目）。
+    /// </summary>
+    private readonly ObservableCollection<SmbEntry> _view = new();
+
     // ---------- 浏览位置记忆（返回上级/刷新/预览返回时回到原来的滚动位置） ----------
 
     /// <summary>各目录的浏览位置：路径 → 离开时首个可见条目的名称与索引（名称优先，索引兜底）。</summary>
@@ -64,6 +82,9 @@ public partial class FileBrowserPage : ContentPage
         // 单行/多行共用同一套自定义顶栏，始终隐藏 Shell 导航栏
         Shell.SetNavBarIsVisible(this, false);
         ApplyToolbarLayout();
+
+        // 列表数据源固定为 _view：增量加载追加条目时不重设 ItemsSource，避免滚动位置回弹到顶部
+        FileList.ItemsSource = _view;
     }
 
     /// <summary>根据顶栏模式设置布局：单行=一行（退出+路径+功能按钮），多行=两行（第一行退出+路径，第二行功能按钮靠右）。</summary>
@@ -187,20 +208,29 @@ public partial class FileBrowserPage : ContentPage
             // 先把当前目录的浏览位置存档，再换内容：这样刷新/上传/删除后也能回到原位置
             CommitScrollPosition();
 
-            // 加载期间显示动画并清空上一级内容
+            // 加载期间显示动画并清空上一级内容（ItemsSource 固定为稳定数据源 _view，这里只清空它）
             LoadingPanel.IsVisible = true;
-            FileList.ItemsSource = null;
+            _view.Clear();
             EmptyLabel.IsVisible = false;
 
-            var result = await Task.Run(() => SmbSession.Instance.ListDirectory(_currentPath));
+            // 增量加载：先取首屏 BatchSize 条，滚动到底部再取下一批（大目录避免一次列取卡顿）
+            var result = await Task.Run(() => SmbSession.Instance.ListDirectory(_currentPath, BatchSize));
             if (result.entries != null)
             {
                 _currentEntries = result.entries;
+                _hasMore = result.hasMore;
                 SortSettings.Apply(_currentEntries); // 按当前排序方式（文件夹始终优先）
                 ApplyBatchModeToEntries();
                 ApplyDeleteModeToEntries();
                 ApplySearch();
+
+                // 恢复上次的浏览位置：若目标条目在首屏之后（尚未加载），按需补取批次再定位
+                await EnsureLoadedForScrollAsync(_currentPath);
                 await RestoreScrollPositionAsync(_currentPath); // 回到该目录上次的浏览位置
+
+                // 首屏不足一屏（如目录恰好约 100 条且都能显示）时主动补一批，保证列表完整、可继续滚动
+                if (_hasMore && _displayedEntries.Count <= BatchSize)
+                    _ = LoadMoreAsync();
             }
             else
             {
@@ -222,6 +252,102 @@ public partial class FileBrowserPage : ContentPage
         }
     }
 
+    // ---------- 增量加载（大目录分批取，滚动到底部再取下一批） ----------
+
+    /// <summary>取下一批（最多 <see cref="BatchSize"/> 条）并追加到列表，加载前后保持当前滚动位置。</summary>
+    private async Task LoadMoreAsync()
+    {
+        // 注意：不能以 _loading 作为守卫——初始加载（LoadDirectoryAsync，_loading=true）
+        // 期间也要靠 EnsureLoadedForScrollAsync 调本方法来补取深度位置所需的批次。
+        // 用 _loadingMore 防重入即可（滚动触发路径在 _loading 期间已被 OnFileListScrolled 拦截）。
+        if (_loadingMore || !_hasMore)
+            return;
+        _loadingMore = true;
+        LoadingMoreLabel.IsVisible = true;
+        try
+        {
+            // 先记下当前首个可见条目，重建列表后回到它，避免回弹到顶部。
+            // 首个可见条目由 OnFileListScrolled 持续记录在 _scrollCapture（含所属路径）。
+            string? keepName = null;
+            if (_scrollCapture is { } cap && cap.Path == _currentPath)
+                keepName = cap.Name;
+
+            var oldCount = _currentEntries.Count;
+            var result = await Task.Run(() => SmbSession.Instance.ListDirectory(_currentPath, oldCount + BatchSize));
+            if (result.entries == null)
+                return; // 出错：保持现状，等下次触发
+
+            var appended = result.entries.Skip(oldCount).Take(BatchSize).ToList();
+            _currentEntries.AddRange(appended);
+            SortSettings.Apply(_currentEntries); // 全量重排（文件夹始终优先）
+            _hasMore = result.hasMore;
+            ApplySearch(); // 重建 _displayedEntries 与 _view（会重置滚动）
+
+            // 回到加载前的条目，用户几乎无感
+            if (keepName != null)
+                await RestoreScrollToNameAsync(keepName);
+        }
+        catch (Exception ex)
+        {
+#if ANDROID
+            Android.Util.Log.Info("FastSMB", $"LoadMore: failed {ex.Message}");
+#endif
+        }
+        finally
+        {
+            _loadingMore = false;
+            LoadingMoreLabel.IsVisible = false;
+        }
+    }
+
+    /// <summary>
+    /// 若某目录上次的浏览位置在已加载范围之外（首屏之后），按需补取批次，直到目标条目出现或已无更多。
+    /// </summary>
+    private async Task EnsureLoadedForScrollAsync(string path)
+    {
+        if (!_scrollMemory.TryGetValue(path, out var pos))
+            return;
+
+        // 目标已可见则无需补取
+        if (_displayedEntries.Any(x => x.Name == pos.Name) ||
+            (pos.Index > 0 && pos.Index < _displayedEntries.Count))
+            return;
+
+        // 目标在后续批次：循环补取直到目标出现，或已加载过目标索引，或取完（带上限防死循环）
+        int guard = 0;
+        while (_hasMore && guard++ < 200)
+        {
+            await LoadMoreAsync();
+            if (_displayedEntries.Any(x => x.Name == pos.Name) ||
+                _displayedEntries.Count > pos.Index)
+                break;
+        }
+    }
+
+    /// <summary>把视图滚动到指定名称的条目（增量加载重建列表后恢复位置用）。</summary>
+    private async Task RestoreScrollToNameAsync(string name)
+    {
+        var target = _displayedEntries.FirstOrDefault(x => x.Name == name);
+        if (target == null)
+            return;
+        _restoringScroll = true;
+        _scrollSettleUntil = DateTime.UtcNow.AddMilliseconds(300);
+        try
+        {
+            await Task.Delay(60); // 等一次布局
+            FileList.ScrollTo(target);
+            await Task.Delay(60);
+        }
+        catch
+        {
+            // 滚动失败不影响使用
+        }
+        finally
+        {
+            _restoringScroll = false;
+        }
+    }
+
     // ---------- 浏览位置记忆 ----------
 
     /// <summary>滚动时记下首个可见条目（只在用户浏览期间采集，程序性滚动不算）。</summary>
@@ -233,6 +359,11 @@ public partial class FileBrowserPage : ContentPage
         if (index < 0 || index >= _displayedEntries.Count)
             return;
         _scrollCapture = (_currentPath, _displayedEntries[index].Name, index);
+
+        // 增量加载：接近底部且还有更多时，取下一批（BatchSize 条）
+        var lastVisible = e.LastVisibleItemIndex;
+        if (_hasMore && !_loadingMore && lastVisible >= _displayedEntries.Count - 8)
+            _ = LoadMoreAsync();
     }
 
     /// <summary>把最近采集到的位置存档到它所属的目录（换目录/刷新前调用）。</summary>
@@ -342,7 +473,11 @@ public partial class FileBrowserPage : ContentPage
                 .ToList();
             EmptyLabel.Text = "没有匹配的文件";
         }
-        FileList.ItemsSource = _displayedEntries;
+        // 同步到稳定数据源 _view（构造函数里已把 ItemsSource 固定为 _view）。
+        // 用 Clear+逐条 Add 而非重新赋值 ItemsSource，避免增量加载/搜索时滚动位置被重置。
+        _view.Clear();
+        foreach (var e in _displayedEntries)
+            _view.Add(e);
         EmptyLabel.IsVisible = _displayedEntries.Count == 0;
         UpdateSelectionCounts();
     }
