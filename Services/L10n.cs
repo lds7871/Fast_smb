@@ -76,6 +76,7 @@ public class L10n : INotifyPropertyChanged
             "【连接后】\n" +
             "• 点文件夹进入，点文件预览（文本 / 图片）\n" +
             "• 图片预览可左右滑动，快速切换同目录下的其他图片\n" +
+            "• 图片预览左下角显示「当前/总数」，右下角「下载」按钮可下载当前图片\n" +
             "• 视频、音频会自动调起系统播放器 / 打开方式\n" +
             "• 点文件右侧「⬇ 下载」单个下载；顶栏「上传」可上传本地文件到当前目录\n" +
             "• 顶栏「批量」可多选批量下载；「搜索」按文件名过滤当前目录\n" +
@@ -212,6 +213,7 @@ public class L10n : INotifyPropertyChanged
             "[After connecting]\n" +
             "• Tap a folder to enter, tap a file to preview (text / image)\n" +
             "• In image preview, swipe left/right to switch between images in the same folder\n" +
+            "• In image preview the bottom-left shows the current/total index; tap Download (bottom-right) to save the current image\n" +
             "• Video and audio open with the system player / picker\n" +
             "• Tap the ⬇ button for a single download; use Upload on the toolbar to send files to the current folder\n" +
             "• Use Batch mode for multiple downloads; use Search to filter file names\n" +

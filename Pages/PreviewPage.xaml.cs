@@ -19,6 +19,8 @@ public partial class PreviewPage : ContentPage
     private CancellationTokenSource? _cts;  // 正在进行的图片读取
     private bool _loading;
     private int _pendingIndex = -1;         // 加载期间用户又滑到的目标
+    private bool _downloading;              // 正在下载当前图片
+    private CancellationTokenSource? _downloadCts;
 
     /// <summary>文本预览（内容已在浏览器页读取好）。</summary>
     public PreviewPage(string title, byte[] data)
@@ -49,6 +51,9 @@ public partial class PreviewPage : ContentPage
             return;
         }
 
+        // 图片预览才显示左下角索引与右下角下载按钮
+        IndexBadge.IsVisible = true;
+        DownloadBtn.IsVisible = true;
         UpdateTitle();
         if (_currentImage == null)
             RequestImage(_index);   // 首次进入，或上次离开时读取被取消
@@ -59,8 +64,9 @@ public partial class PreviewPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // 离开预览页时中断未完成的读取，把 SMB 连接让给浏览页
+        // 离开预览页时中断未完成的读取与下载，把 SMB 连接让给浏览页
         _cts?.Cancel();
+        _downloadCts?.Cancel();
     }
 
     // ---------- 左右滑动切换图片 ----------
@@ -171,7 +177,70 @@ public partial class PreviewPage : ContentPage
     {
         if (_images.Count == 0)
             return;
-        Title = $"{_images[_index].Name} ({_index + 1}/{_images.Count})";
+        // 顶栏只显示文件名；「当前/总数」索引移到左下角悬浮文本
+        Title = _images[_index].Name;
+        IndexLabel.Text = $"{_index + 1}/{_images.Count}";
+    }
+
+    // ---------- 下载当前图片 ----------
+
+    private async void OnDownloadClicked(object? sender, EventArgs e)
+    {
+        if (_images.Count == 0)
+            return;
+        await SaveCurrentImageAsync(_images[_index]);
+    }
+
+    /// <summary>把当前这张图片完整下载到手机「下载」目录（复用与浏览页相同的落盘逻辑）。</summary>
+    private async Task SaveCurrentImageAsync(PreviewImage item)
+    {
+        if (_downloading)
+            return;
+
+        var ensure = await Task.Run(() => SmbSession.Instance.EnsureConnected());
+        if (!ensure.ok)
+        {
+            await Banner.ShowAsync(L10n.Instance["download_fail"] + (ensure.message ?? L10n.Instance["unknown_err"]), error: true, durationMs: 2500);
+            return;
+        }
+
+        _downloading = true;
+        DownloadBtn.IsEnabled = false;
+        _downloadCts = new CancellationTokenSource();
+        var token = _downloadCts.Token;
+
+        try
+        {
+            var ok = await Task.Run(async () =>
+            {
+                using var output = DownloadSaver.CreateDownloadStream(item.Name);
+                if (output == null)
+                    return false;
+                // 重新按完整大小读取并落盘（预览只读到 20MB 上限，直接存内存数据可能截断大文件）
+                var result = await SmbSession.Instance.DownloadFileAsync(item.RemotePath, output, null, token);
+                return result.ok;
+            });
+
+            await Banner.ShowAsync(
+                ok ? $"{L10n.Instance["download_done"]}{item.Name}" : L10n.Instance["download_failed"],
+                error: !ok,
+                durationMs: ok ? 1200 : 2500);
+        }
+        catch (OperationCanceledException)
+        {
+            // 离开页面导致的中断，忽略
+        }
+        catch (Exception ex)
+        {
+            await Banner.ShowAsync(L10n.Instance["download_fail"] + ex.Message, error: true, durationMs: 2500);
+        }
+        finally
+        {
+            _downloading = false;
+            _downloadCts?.Dispose();
+            _downloadCts = null;
+            DownloadBtn.IsEnabled = true;
+        }
     }
 
     /// <summary>文本解码：优先 UTF-8（严格校验），失败回退 GBK，再回退系统默认。</summary>

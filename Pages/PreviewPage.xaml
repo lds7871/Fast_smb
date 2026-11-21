@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns:l10n="clr-namespace:Fast_smb.Services" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Fast_smb.Controls"
              x:Class="Fast_smb.Pages.PreviewPage"
              Title="{Binding [preview_title], Source={x:Static l10n:L10n.Instance}}"
              BackgroundColor="{AppThemeBinding Dark={StaticResource BgDark}, Light={StaticResource BgLight}}">
@@ -36,11 +37,47 @@
                VerticalOptions="Center" />
 
         <ActivityIndicator x:Name="Busy"
-                           IsRunning="True"
-                           IsVisible="True"
-                           Color="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
-                           VerticalOptions="Center"
-                           HorizontalOptions="Center" />
+                            IsRunning="True"
+                            IsVisible="True"
+                            Color="{AppThemeBinding Dark={StaticResource AccentDark}, Light={StaticResource AccentLight}}"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Center" />
+
+        <!-- 图片索引悬浮文本（左下角）：当前序号/总数 -->
+        <Border x:Name="IndexBadge"
+                IsVisible="False"
+                HorizontalOptions="Start"
+                VerticalOptions="End"
+                Margin="14,0,0,14"
+                BackgroundColor="#80000000"
+                StrokeShape="RoundRectangle 13"
+                Padding="12,6">
+            <Label x:Name="IndexLabel"
+                   TextColor="White"
+                   FontSize="14"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+        </Border>
+
+        <!-- 下载悬浮按钮（右下角）：点击即可下载当前图片 -->
+        <Button x:Name="DownloadBtn"
+                IsVisible="False"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                Margin="14,0,14,14"
+                Text="{Binding [download_btn], Source={x:Static l10n:L10n.Instance}}"
+                Clicked="OnDownloadClicked"
+                BackgroundColor="{AppThemeBinding Dark=#80A371F7, Light=#806E40C9}"
+                TextColor="{AppThemeBinding Dark={StaticResource TextOnAccentDark}, Light={StaticResource TextOnAccentLight}}"
+                FontSize="15"
+                HeightRequest="44"
+                CornerRadius="22"
+                Padding="20,0" />
+
+        <!-- 下载结果顶部横幅 -->
+        <controls:TopBannerView x:Name="Banner"
+                                VerticalOptions="Start"
+                                HorizontalOptions="Fill" />
     </Grid>
 
 </ContentPage>

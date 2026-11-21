@@ -223,7 +223,7 @@ public class SmbSession : IDisposable
     /// 从共享下载文件到指定输出流（path 用 "/" 分隔的相对路径）。
     /// </summary>
     public async Task<(bool ok, string? message)> DownloadFileAsync(
-        string path, Stream output, IProgress<double> progress, CancellationToken ct)
+        string path, Stream output, IProgress<double>? progress, CancellationToken ct)
     {
         var ensure = EnsureConnected();
         if (!ensure.ok)
